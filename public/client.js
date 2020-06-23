@@ -1,5 +1,3 @@
-console.log('Client-side code running');
-
 const input = document.getElementById("input-file");
 let dict;
 
@@ -49,7 +47,6 @@ function readFileContent(file) {
 function displayCells(cells){
     clearBox('cells-div');
     for (let cell of cells){
-        //console.log(cell);
         let cellBody = document.createElement('div');
         cellBody.className = 'cell';
         cellBody.innerHTML = cell.source.join('');
@@ -85,7 +82,6 @@ function displayDependencies(event){
             throw new Error('request failed.');
         })
         .then(function(data){
-            console.log(data);
             let staleCells = getCellsfromExecCount(data);
             setInvalid(staleCells);
             setValid([cell]);
