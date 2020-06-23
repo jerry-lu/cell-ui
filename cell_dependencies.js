@@ -1,12 +1,5 @@
 var utils = require("./cell_utils.js");
-
-function printDependencies(cells, printMode, dict){
-    for (let cell of cells){
-        cell.dependentOn.forEach(element =>
-            console.log(utils.printCell(element, printMode, dict) + " -> " + utils.printCell(cell.execution_count, printMode, dict)));
-    }
-}
-
+var py = require("../../python-program-analysis");
 
 module.exports = {
     calculateCells: function(notebook, cellNo){
@@ -15,8 +8,8 @@ module.exports = {
         //dict is a dictionary pointing from execution_count to the corresponding cell 
         let dict = new Object();
         let cells = [];
-        let text = "";
-        let currentLine = 1;
+        let text = "while(True):\n";
+        let currentLine = 2;
         
         if (notebookJson.nbformat < 4){
             console.log(`Error: ${notebook} Notebook version out of date`);
@@ -25,19 +18,22 @@ module.exports = {
 
         for (let cell of notebookJson.cells){
             if (cell.cell_type === 'code'){
-                var sourceCode = "";
+                var sourceCode = "\tif (True):\n";
                 for (let line of cell.source) {
                     if (line[0] == '%' || line[0] == '!') {
                         line = "#" + line;
                     }
-                    sourceCode += line;
+                    sourceCode += "\t\t" + line + "\n";
                 }
                 let cellLength = cell.source.length;
-                text += sourceCode + "\n";
-                cell.lineNos = [currentLine, currentLine + cellLength - 1];
+                if (cellLength > 0){
+                    text += sourceCode;
+                    cell.lineNos = [currentLine + 1, currentLine + cellLength];
+
+                }
                 cell.dependentOn = [];
                 cell.dependents = [];
-                currentLine += cellLength;
+                currentLine += cellLength + 1;
                 cells.push(cell);
                 dict[cell.execution_count] = cell;
             }
@@ -51,15 +47,19 @@ module.exports = {
             let fromNodeLineNo = flow.fromNode.location.first_line;
             let toNodeLineNo = flow.toNode.location.first_line;
     
-            cells.forEach(function(item){
-                if (utils.isInCellBoundaries(fromNodeLineNo, item.lineNos)){
-                    defCell = item;
-                } else if (utils.isInCellBoundaries(toNodeLineNo, item.lineNos)){
-                    useCell = item;
+            cells.forEach(function(currentCell){
+                if (currentCell.lineNos !== undefined){
+                    if (utils.isInCellBoundaries(fromNodeLineNo, currentCell.lineNos)){
+                        defCell = currentCell;
+                    } else if (utils.isInCellBoundaries(toNodeLineNo, currentCell.lineNos)){
+                        useCell = currentCell;
+                    }
                 }
-            })
-    
-            if (useCell !== undefined && !useCell.dependentOn.includes(defCell.execution_count)){
+            });
+
+            //console.log(py.printNode(flow.fromNode) +  " -> " + py.printNode(flow.toNode))
+
+            if (defCell !== undefined && useCell !== undefined && !useCell.dependentOn.includes(defCell.execution_count)){
                 useCell.dependentOn.push(defCell.execution_count);
                 defCell.dependents.push(useCell.execution_count);
             }
@@ -77,5 +77,4 @@ module.exports = {
             descendants: utils.cellSetToArray(utils.breadthFirstSearch(selectedCell, dict, true))
         };
     }
-
 }
