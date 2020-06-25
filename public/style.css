@@ -3,11 +3,6 @@
     padding-bottom: 10px;
     padding-left: 10px;
     margin-left: 50px;
-    margin-top: 5px;
-    min-height: 10px;
-    width: 800px;
-    font-family: monospace;
-    white-space: pre-line;
     border: 2px solid #000;
     position: relative;
 }
@@ -16,8 +11,20 @@
     border: 2px solid red;
 }
 
-.cell button {
+.unexecuted {
+    color: gray;
+}
+
+.cellButton {
     position: absolute;
     top: 10px;
     left: -50px;
+}
+
+h1 {
+    font-family: Helvetica, sans-serif;
+}
+
+label{
+    font-family: Helvetica, sans-serif;
 }

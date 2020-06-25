@@ -12,10 +12,12 @@ app.use(express.json({
 app.use(express.urlencoded({
     extended: true,
     limit: '10mb',
- })) // for parsing application/x-www-form-urlencoded
+})) // for parsing application/x-www-form-urlencoded
 
-// serve filed from the public dir
+// serve files from the public dir
 app.use(express.static('public'));
+
+//app.use(express.static('node_modules'));
 
 app.listen(port, () => {
 	console.log('listening on 8080');
@@ -26,6 +28,10 @@ app.get('/', (req, res) => {
 	res.sendFile(__dirname + '/index.html');
 });
 
+app.get('/dagre', (req, res) => {
+	res.sendFile(__dirname + '/public/test.html');
+});
+
 let cells = [];
 let dict = [];
 
@@ -34,7 +40,7 @@ app.post('/input', function(req, res){
     let output = deps.calculateCells(notebook);
     cells = output.cellList;
     dict = output.dict;
-
+    console.log(cells);
     res.send(output);
 });
 
@@ -45,3 +51,16 @@ app.post('/calculateDeps', function(req, res){
     res.send(output.descendants);
 });
 
+app.get('/edges', function(req, res){
+    if (cells === undefined || cells.length < 1){
+        res.status(400).send(new Error('no notebook uploaded yet'));
+    }
+    let arr = [];
+    cells.forEach(cell => {
+        let from = cell.execution_count;
+        cell.dependents.forEach(to =>{
+            arr.push({from: from, to: to});
+        });
+    });
+    res.send(arr);
+});

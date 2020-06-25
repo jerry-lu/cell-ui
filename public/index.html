@@ -5,16 +5,21 @@
         <meta charset="utf-8"/>
         <title>Cell UI</title>
         <link href="./style.css" rel="stylesheet">
+        <link rel="stylesheet" href="demo.css">
+        <script src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+        <script src="./dagre-d3.min.js"></script>
     </head>
 
     <body>
         <h1>Notebook Execution Order Analysis</h1>
         <div>
-            <label for="input-file">Upload your file:</label><br>
+            <label for="input-file">Upload your file:</label>
             <input type="file" id="input-file" accept=".ipynb">
         </div>
 
         <div id="cells-div"></div>
+        <div id="button-div"></div>
+        <svg id="svg-canvas" width=960 height=400></svg>
     </body>
-    <script src="client.js"></script>
+    <script src="client.js" type='module'></script>
 </html>

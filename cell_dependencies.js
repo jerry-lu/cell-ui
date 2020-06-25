@@ -8,7 +8,7 @@ module.exports = {
         //dict is a dictionary pointing from execution_count to the corresponding cell 
         let dict = new Object();
         let cells = [];
-        let text = "while(True):\n";
+        let text = "while(True):";
         let currentLine = 2;
         
         if (notebookJson.nbformat < 4){
@@ -18,12 +18,12 @@ module.exports = {
 
         for (let cell of notebookJson.cells){
             if (cell.cell_type === 'code'){
-                var sourceCode = "\tif (True):\n";
+                var sourceCode = "\n\tif (True):\n";
                 for (let line of cell.source) {
                     if (line[0] == '%' || line[0] == '!') {
                         line = "#" + line;
                     }
-                    sourceCode += "\t\t" + line + "\n";
+                    sourceCode += "\t\t" + line;
                 }
                 let cellLength = cell.source.length;
                 if (cellLength > 0){
@@ -51,7 +51,8 @@ module.exports = {
                 if (currentCell.lineNos !== undefined){
                     if (utils.isInCellBoundaries(fromNodeLineNo, currentCell.lineNos)){
                         defCell = currentCell;
-                    } else if (utils.isInCellBoundaries(toNodeLineNo, currentCell.lineNos)){
+                    }
+                    if (utils.isInCellBoundaries(toNodeLineNo, currentCell.lineNos)){
                         useCell = currentCell;
                     }
                 }

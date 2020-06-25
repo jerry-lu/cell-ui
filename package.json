@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/jerry-lu/cell-ui#readme",
   "dependencies": {
+    "d3": "^5.16.0",
+    "dagre-d3": "^0.6.4",
     "express": "^4.17.1"
   }
 }
