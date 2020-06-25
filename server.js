@@ -33,21 +33,18 @@ app.get('/dagre', (req, res) => {
 });
 
 let cells = [];
-let dict = [];
 
 app.post('/input', function(req, res){
     let notebook = req.body.notebook;
-    let output = deps.calculateCells(notebook);
+    let output = deps.calculateDefUse(notebook);
     cells = output.cellList;
-    dict = output.dict;
-    console.log(cells);
     res.send(output);
 });
 
 app.post('/calculateDeps', function(req, res){
     let executionCount = req.body.executionCount;
-    let selectedCell = dict[executionCount];
-    let output = deps.calculateDeps(selectedCell, dict);
+    let output = deps.calculateDeps(cells, executionCount);
+    console.log(output);
     res.send(output.descendants);
 });
 
@@ -57,8 +54,8 @@ app.get('/edges', function(req, res){
     }
     let arr = [];
     cells.forEach(cell => {
-        let from = cell.execution_count;
-        cell.dependents.forEach(to =>{
+        let from = cell._idx;
+        cell._descendants.forEach(to =>{
             arr.push({from: from, to: to});
         });
     });

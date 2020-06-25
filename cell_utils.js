@@ -25,17 +25,18 @@ module.exports = {
 		return Math.floor(Math.random() * (max - min + 1)) + min;
 	},
 
-	breadthFirstSearch: function(cell, dict, searchDependents=false){
+	breadthFirstSearch: function(cells, idx, searchDependents=false){
+		let cell = cells[idx];
 		let visited = new Set();
 		let stack = [cell];
 		let neighbors = [];
 		while (stack.length > 0){
 			let current = stack.pop();
 			visited.add(current);
-			searchDependents ? neighbors = current.dependents : neighbors = current.dependentOn;
+			searchDependents ? neighbors = current._descendants : neighbors = current._ancestors;
 			if (neighbors !== undefined){
 				neighbors.forEach(neighbor => {
-					neighbor = dict[neighbor];
+					neighbor = cells[neighbor];
 					if (!visited.has(neighbor)){
 						stack.push(neighbor);
 					}
@@ -48,7 +49,7 @@ module.exports = {
 
 	cellSetToArray: function(cells){
 		let array = [];
-		cells.forEach(cell => array.push(parseInt(cell.execution_count)));
+		cells.forEach(cell => array.push(parseInt(cell._idx)));
 		return array.sort((a, b) => a - b)
 	},
 

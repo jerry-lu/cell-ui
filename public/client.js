@@ -1,5 +1,3 @@
-let dict;
-
 const header = {
     'Accept': 'application/json',
     'Content-Type': 'application/json'
@@ -22,7 +20,6 @@ function readNotebook() {
                     throw new Error('Request failed');
                 })
                 .then(function(data) {
-                    dict = data.dict;
                     displayCells(data.cellList);
                     createVisualizationButton();
                 })
@@ -69,12 +66,15 @@ function fetchGraph(){
 }
 
 function createVisualizationButton(){
-    let buttonDiv = document.getElementById('button-div');
-    let button = document.createElement('button');
-    button.id = 'displayEdges';
-    button.innerHTML = 'Display dependency visualization';
-    button.addEventListener('click', fetchGraph);
-    buttonDiv.appendChild(button);
+    let check = document.getElementById('displayEdges');
+    if (check === null){
+        let buttonDiv = document.getElementById('button-div');
+        let button = document.createElement('button');
+        button.id = 'displayEdges';
+        button.innerHTML = 'Display dependency visualization';
+        button.addEventListener('click', fetchGraph);
+        buttonDiv.appendChild(button);
+    }
 }
 
 function readFileContent(file) {
@@ -91,7 +91,7 @@ function displayCells(cells){
     for (let cell of cells){
         let pre = document.createElement('pre');
         pre.className = 'cell unexecuted';
-        pre.executionCount = cell.execution_count;
+        pre.executionCount = cell._idx;
 
         let cellBody = document.createElement('code');
         cellBody.innerHTML = cell.source.join('');
@@ -99,7 +99,7 @@ function displayCells(cells){
         let execCount = document.createElement('button');
         execCount.type = 'button';
         execCount.className = 'cellButton';
-        execCount.innerHTML = cell.execution_count;
+        execCount.innerHTML = cell._idx;
         execCount.addEventListener('click', displayDependencies);
 
         cellBody.appendChild(execCount);
