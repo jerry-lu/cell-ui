@@ -21,6 +21,8 @@ function readNotebook() {
                 })
                 .then(function(data) {
                     displayCells(data.cellList);
+                    clearBox('order', 'Execution order:');
+                    clearBox('svg-canvas');
                     createVisualizationButton();
                 })
                 .catch(function(error) {
@@ -29,28 +31,30 @@ function readNotebook() {
         });
 }
 
-function displayDependencies(event){
+function runCell(event){
     let cell = event.target.parentElement;
+    let idx = cell.parentElement.idx;
     fetch('/calculateDeps', {
         method: 'POST',
         headers: header,
-        body: JSON.stringify({ executionCount: cell.parentElement.executionCount })
+        body: JSON.stringify({ idx: idx })
     })
         .then(function(response) {
             if(response.ok) return response.json();
             throw new Error('request failed.');
         })
         .then(function(data){
-            let staleCells = getCellsfromExecCount(data);
+            let staleCells = getCellsfromIndex(data);
             setInvalid(staleCells);
             setValid([cell.parentElement]);
+            updateExecOrder(idx);
         })
         .catch(function(error){
             console.log(error);
         });
 }
 
-function fetchGraph(){
+function showGraph(){
     console.log('click recorded');
     fetch('/edges', {method: 'GET'})
         .then(function(response) {
@@ -58,7 +62,7 @@ function fetchGraph(){
             throw new Error('Request failed');
         })
         .then(function(data){
-            renderGraph(data);
+            createGraph(data);
         })
         .catch(function(error){
             console.log(error);
@@ -72,7 +76,7 @@ function createVisualizationButton(){
         let button = document.createElement('button');
         button.id = 'displayEdges';
         button.innerHTML = 'Display dependency visualization';
-        button.addEventListener('click', fetchGraph);
+        button.addEventListener('click', showGraph);
         buttonDiv.appendChild(button);
     }
 }
@@ -90,19 +94,21 @@ function displayCells(cells){
     clearBox('cells-div');
     for (let cell of cells){
         let pre = document.createElement('pre');
-        pre.className = 'cell unexecuted';
-        pre.executionCount = cell._idx;
+        pre.className = 'cell';
+        pre.className += ' unexecuted';
+
+        pre.idx = cell._idx;
 
         let cellBody = document.createElement('code');
         cellBody.innerHTML = cell.source.join('');
 
-        let execCount = document.createElement('button');
-        execCount.type = 'button';
-        execCount.className = 'cellButton';
-        execCount.innerHTML = cell._idx;
-        execCount.addEventListener('click', displayDependencies);
+        let execButton = document.createElement('button');
+        execButton.type = 'button';
+        execButton.className = 'cellButton';
+        execButton.innerHTML = cell._idx;
+        execButton.addEventListener('click', runCell);
 
-        cellBody.appendChild(execCount);
+        cellBody.appendChild(execButton);
         pre.appendChild(cellBody);
         document.getElementById('cells-div').appendChild(pre);
     }
@@ -115,6 +121,18 @@ function setValid(cells){
     });
 }
 
+function updateExecOrder(idx){
+    let order = document.getElementById('order');
+    if (order === null){
+        let orderDiv = document.getElementById('order-div');
+        let order = document.createElement('h4');
+        button.innerHTML = 'Execution Order: ' + idx;
+        orderDiv.appendChild(order);
+    } else {
+        order.innerHTML += '  ' + idx; 
+    }
+}
+
 // indicate which cells are 'invalid'. Cells are invalid
 // if a parent cell was executed.
 function setInvalid(cells){
@@ -123,22 +141,26 @@ function setInvalid(cells){
     });
 }
 
-function getCellsfromExecCount(list){
+function getCellsfromIndex(list){
     let cells = [];
     Array.from(document.getElementsByClassName('cell')).forEach(element =>{
-        if (list.includes(element.executionCount)){
+        if (list.includes(element.idx)){
             cells.push(element)
         }
     })
     return cells;
 }
 
-function clearBox(elementID)
+function clearBox(elementID, text)
 {
-    document.getElementById(elementID).innerHTML = '';
+    let newstr = ''
+    if (text !== undefined){
+        newstr = text;
+    }
+    document.getElementById(elementID).innerHTML = newstr;
 }
 
-function renderGraph(flows){
+function createGraph(flows){
     let g = new dagreD3.graphlib.Graph()
         .setGraph({})
         .setDefaultEdgeLabel(function() { return {}; });

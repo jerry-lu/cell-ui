@@ -42,9 +42,8 @@ app.post('/input', function(req, res){
 });
 
 app.post('/calculateDeps', function(req, res){
-    let executionCount = req.body.executionCount;
-    let output = deps.calculateDeps(cells, executionCount);
-    console.log(output);
+    let idx = req.body.idx;
+    let output = deps.calculateDepsNeighbors(cells, idx);
     res.send(output.descendants);
 });
 

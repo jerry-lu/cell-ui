@@ -83,10 +83,17 @@ module.exports = {
         };
     },
 
-    calculateDeps: function(cells, idx){
+    calculateDepsAll: function(cells, idx){
         return {
             ancestors: utils.cellSetToArray(utils.breadthFirstSearch(cells, idx)),
             descendants: utils.cellSetToArray(utils.breadthFirstSearch(cells, idx, true))
+        };
+    },
+
+    calculateDepsNeighbors: function(cells, idx){
+        return {
+            ancestors: cells[idx]._ancestors,
+            descendants: cells[idx]._descendants
         };
     }
 }

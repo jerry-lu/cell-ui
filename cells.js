@@ -33,7 +33,6 @@ class Cell {
     set idx(idx){
         this._idx = idx;
     }
-
 }
 
 module.exports = { Cell };
