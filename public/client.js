@@ -160,6 +160,8 @@ function clearBox(elementID, text)
     document.getElementById(elementID).innerHTML = newstr;
 }
 
+function $(x) {return document.getElementById(x);} 
+
 function createGraph(flows){
     let g = new dagreD3.graphlib.Graph()
         .setGraph({})
