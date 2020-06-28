@@ -38,6 +38,11 @@ app.post('/input', function(req, res){
     let notebook = req.body.notebook;
     let output = deps.calculateDefUse(notebook);
     cells = output.cellList;
+    let state = deps.simulateTopDown(cells);
+    let otherstate = deps.simulateExecutionOrder(cells, undefined, true);
+    console.log(state);
+    console.log(otherstate);
+    console.log(deps.isSameState(state, otherstate));
     res.send(output);
 });
 

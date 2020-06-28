@@ -33,6 +33,28 @@ class Cell {
     set idx(idx){
         this._idx = idx;
     }
+    set currentInput(input){
+        this._currentInput = input;
+    }
+    get currentInput(){
+        return this._currentInput
+    }
+    apply(map){
+        let output = new Map();
+        let parents = this._ancestors;
+        if (parents === undefined || parents.length == 0){
+            return "\u03B1";
+        } else {
+            parents.forEach(parent => {
+                if (map.has(parent)){
+                    output.set(parent, map.get(parent));
+                } else {
+                    output.set(parent, '\u00f8');
+                }
+            });
+            return output;
+        }
+    }
 }
 
 module.exports = { Cell };

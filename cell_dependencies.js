@@ -1,7 +1,5 @@
-var utils = require("./cell_utils.js");
-var py = require("../../python-program-analysis");
+const utils = require("./cell_utils.js");
 const { Cell } = require("./cells.js");
-require('./cells.js');
 
 module.exports = {
     constructCells: function(notebook){
@@ -13,11 +11,11 @@ module.exports = {
         }
 
         let cells = [];
-
-        notebookJson.cells.map((element, index) => {
+        let count = 0;
+        notebookJson.cells.forEach(element => {
             if (element.cell_type === 'code'){
-                let cell = new Cell(element, index);
-                cells.push(cell)
+                let cell = new Cell(element, count++);
+                cells.push(cell);
             }
         });
         return cells;
@@ -53,7 +51,6 @@ module.exports = {
         let flows = utils.getDefUse(text);
 
         for (let flow of flows.items) {
-
             let defCell;
             let useCell;
             let fromNodeLineNo = flow.fromNode.location.first_line;
@@ -95,5 +92,42 @@ module.exports = {
             ancestors: cells[idx]._ancestors,
             descendants: cells[idx]._descendants
         };
+    },
+
+    // cells is a list of cell objects
+    // sequence is list of ints representing cell indices
+    simulateExecutionOrder: function(cells, sequence, isTopDown){
+        let outputs = new Map();
+        if (sequence === undefined || isTopDown){
+            sequence = [...Array(cells.length).keys()];
+        }
+        sequence.forEach(idx => {
+            let cell = cells[idx];
+            outputs.set(idx, cell.apply(outputs));
+        });
+        return outputs;
+    },
+
+    isSameState: function(x, y){
+        //needs to be updated to reflect the fact that state is represented with maps
+        if(x.length !== y.length){
+            return false;
+        } else {
+            const iterator = x.keys();
+            for (let key of iterator){
+                if (x.get(key) !== y.get(key)){
+                    return false;
+                }
+            }
+        }
+        return true;
+    },
+
+    simulateTopDown: function(cells){
+        let outputs = new Map();
+        cells.map((cell, idx) =>{
+            outputs.set(idx, cell.apply(outputs));
+        });
+        return outputs
     }
 }
