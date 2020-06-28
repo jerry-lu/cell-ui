@@ -3,6 +3,8 @@ const header = {
     'Content-Type': 'application/json'
 }
 
+let executionLog = []
+
 const input = document.getElementById("input-file");
 input.addEventListener('change', readNotebook);
 
@@ -23,6 +25,7 @@ function readNotebook() {
                     displayCells(data.cellList);
                     clearBox('order', 'Execution order:');
                     clearBox('svg-canvas');
+                    clearLog();
                     createVisualizationButton();
                 })
                 .catch(function(error) {
@@ -70,9 +73,9 @@ function showGraph(){
 }
 
 function createVisualizationButton(){
-    let check = document.getElementById('displayEdges');
+    let check = $('displayEdges');
     if (check === null){
-        let buttonDiv = document.getElementById('button-div');
+        let buttonDiv = $('button-div');
         let button = document.createElement('button');
         button.id = 'displayEdges';
         button.innerHTML = 'Display dependency visualization';
@@ -122,15 +125,14 @@ function setValid(cells){
 }
 
 function updateExecOrder(idx){
-    let order = document.getElementById('order');
+    executionLog.push(idx);
+    let order = $('order');
     if (order === null){
         let orderDiv = document.getElementById('order-div');
         let order = document.createElement('h4');
-        button.innerHTML = 'Execution Order: ' + idx;
         orderDiv.appendChild(order);
-    } else {
-        order.innerHTML += '  ' + idx; 
     }
+    order.innerHTML = 'Execution Order: ' + executionLog;
 }
 
 // indicate which cells are 'invalid'. Cells are invalid
@@ -158,6 +160,10 @@ function clearBox(elementID, text)
         newstr = text;
     }
     document.getElementById(elementID).innerHTML = newstr;
+}
+
+function clearLog(){
+    executionLog = [];
 }
 
 function $(x) {return document.getElementById(x);} 
