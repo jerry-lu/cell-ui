@@ -1,5 +1,6 @@
 const utils = require("./cell_utils.js");
 const { Cell } = require("./cells.js");
+const _ = require("lodash");
 
 module.exports = {
     constructCells: function(notebook){
@@ -103,31 +104,18 @@ module.exports = {
         }
         sequence.forEach(idx => {
             let cell = cells[idx];
-            outputs.set(idx, cell.apply(outputs));
+            if (cell.source !== undefined && cell.source.length > 0){
+                outputs.set(idx, cell.apply(outputs));
+            }
         });
         return outputs;
     },
 
     isSameState: function(x, y){
-        //needs to be updated to reflect the fact that state is represented with maps
         if(x.length !== y.length){
             return false;
         } else {
-            const iterator = x.keys();
-            for (let key of iterator){
-                if (x.get(key) !== y.get(key)){
-                    return false;
-                }
-            }
+            return _.isEqual(x, y);
         }
-        return true;
-    },
-
-    simulateTopDown: function(cells){
-        let outputs = new Map();
-        cells.map((cell, idx) =>{
-            outputs.set(idx, cell.apply(outputs));
-        });
-        return outputs
     }
 }

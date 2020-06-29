@@ -133,6 +133,33 @@ function updateExecOrder(idx){
         orderDiv.appendChild(order);
     }
     order.innerHTML = 'Execution Order: ' + executionLog;
+
+    let compare = $('compare');
+    if (compare === null){
+        let compare = document.createElement('button');
+        compare.id = "compare";
+        compare.innerHTML = 'compare current execution order to top-down order';
+        compare.addEventListener('click', compareExecOrder);
+        $('order-div').appendChild(compare);
+    }
+}
+
+function compareExecOrder(){
+    fetch('/compare', {
+        method: 'POST',
+        headers: header,
+        body: JSON.stringify({order: executionLog})
+    })
+        .then(function(response) {
+            if(response.ok) return response.json();
+            throw new Error('Request failed');
+        })
+        .then(function(data) {
+            console.log(data);
+        })
+        .catch(function(error) {
+            console.log(error);
+        });
 }
 
 // indicate which cells are 'invalid'. Cells are invalid

@@ -9,6 +9,7 @@ app.use(express.json({
     limit: '10mb',
     extended: true
 })) // for parsing application/json
+
 app.use(express.urlencoded({
     extended: true,
     limit: '10mb',
@@ -16,8 +17,6 @@ app.use(express.urlencoded({
 
 // serve files from the public dir
 app.use(express.static('public'));
-
-//app.use(express.static('node_modules'));
 
 app.listen(port, () => {
 	console.log('listening on 8080');
@@ -28,21 +27,12 @@ app.get('/', (req, res) => {
 	res.sendFile(__dirname + '/index.html');
 });
 
-app.get('/dagre', (req, res) => {
-	res.sendFile(__dirname + '/public/test.html');
-});
-
 let cells = [];
 
 app.post('/input', function(req, res){
     let notebook = req.body.notebook;
     let output = deps.calculateDefUse(notebook);
     cells = output.cellList;
-    let state = deps.simulateTopDown(cells);
-    let otherstate = deps.simulateExecutionOrder(cells, undefined, true);
-    console.log(state);
-    console.log(otherstate);
-    console.log(deps.isSameState(state, otherstate));
     res.send(output);
 });
 
@@ -64,4 +54,14 @@ app.get('/edges', function(req, res){
         });
     });
     res.send(arr);
+});
+
+app.post('/compare', function(req, res) {
+    let execOrder = req.body.order;
+    console.log(execOrder);
+    let topDownState = deps.simulateExecutionOrder(cells, undefined, true);
+    let otherState = deps.simulateExecutionOrder(cells, execOrder);
+    let output = deps.isSameState(topDownState, otherState);
+    console.log(output);
+    res.send(output);    
 });
