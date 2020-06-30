@@ -58,7 +58,6 @@ function runCell(event){
 }
 
 function showGraph(){
-    console.log('click recorded');
     fetch('/edges', {method: 'GET'})
         .then(function(response) {
             if(response.ok) return response.json();
@@ -98,7 +97,7 @@ function displayCells(cells){
     for (let cell of cells){
         let pre = document.createElement('pre');
         pre.className = 'cell';
-        pre.className += ' unexecuted';
+        pre.classList.add('unexecuted');
 
         pre.idx = cell._idx;
 
@@ -106,7 +105,6 @@ function displayCells(cells){
         cellBody.innerHTML = cell.source.join('');
 
         let execButton = document.createElement('button');
-        execButton.type = 'button';
         execButton.className = 'cellButton';
         execButton.innerHTML = cell._idx;
         execButton.addEventListener('click', runCell);
@@ -138,10 +136,11 @@ function updateExecOrder(idx){
     if (compare === null){
         let compare = document.createElement('button');
         compare.id = "compare";
-        compare.innerHTML = 'compare current execution order to top-down order';
+        compare.innerHTML = 'Compare with top-down order';
         compare.addEventListener('click', compareExecOrder);
         $('order-div').appendChild(compare);
     }
+    addResetButton();
 }
 
 function compareExecOrder(){
@@ -155,11 +154,50 @@ function compareExecOrder(){
             throw new Error('Request failed');
         })
         .then(function(data) {
-            console.log(data);
+            displayCompareResult(data);
         })
         .catch(function(error) {
             console.log(error);
         });
+}
+
+function displayCompareResult(data){
+    let result = document.createElement('div');
+    result.id = 'result';
+    if (data === true){
+        result.innerHTML = 'Same state as top-down execution';
+        result.classList.add('greenbox');
+    } else {
+        result.innerHTML = 'Current state does not match top-down execution';
+        result.classList.add('redbox');
+    }
+    $('order-div').appendChild(result);
+}
+
+function resetExecutionOrder(){
+    executionLog = [];
+    Array.from(document.getElementsByClassName('cell')).forEach(element =>{
+        element.classList.remove('stale');
+        element.classList.add('unexecuted');
+    });
+    let order = $('order');
+    order.innerHTML = 'Execution Order:';
+    let result = $('result');
+    while (result !== null){
+        result.remove();
+        result = $('result');
+    }
+}
+
+function addResetButton(){
+    let reset = $('reset');
+    if (reset === null){
+        let reset = document.createElement('button');
+        reset.id = 'reset';
+        reset.innerHTML = 'Reset Execution Order';
+        reset.addEventListener('click', resetExecutionOrder);
+        $('order-div').appendChild(reset);
+    }
 }
 
 // indicate which cells are 'invalid'. Cells are invalid

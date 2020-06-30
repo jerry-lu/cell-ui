@@ -15,23 +15,28 @@
     color: gray;
 }
 
-.cellButton {
-    position: absolute;
-    top: 5px;
-    left: -50px;
+button {
     padding:0.3em 1.2em;
     margin:0 0.3em 0.3em 0;
     border-radius:1em;
     box-sizing: border-box;
     text-decoration:none;
+    font-size: small;
     color:#FFFFFF;
     background-color:#4eb5f1;
     text-align:center;
     transition: all 0.2s;
-    border: 1px black
+    border: 1px black;
 }
 
-.cellButton:hover{
+.cellButton {
+    position: absolute;
+    top: 5px;
+    left: -50px;
+    font-size: smaller;
+}
+
+button:hover{
     background-color:#4095c6;
 }
 
@@ -42,6 +47,21 @@
     border-radius: 50%;
     display: inline-block;
 }
+
+.redbox {
+    padding: 20px;
+    background-color: #f44336; /* Red */
+    color: white;
+    margin-bottom: 15px;
+}
+
+.greenbox {
+    padding: 20px;
+    background-color: green;
+    color: white;
+    margin-bottom: 15px;
+}
+  
 
 body {
 width: 960px;

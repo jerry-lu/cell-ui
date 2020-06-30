@@ -58,10 +58,8 @@ app.get('/edges', function(req, res){
 
 app.post('/compare', function(req, res) {
     let execOrder = req.body.order;
-    console.log(execOrder);
     let topDownState = deps.simulateExecutionOrder(cells, undefined, true);
     let otherState = deps.simulateExecutionOrder(cells, execOrder);
     let output = deps.isSameState(topDownState, otherState);
-    console.log(output);
     res.send(output);    
 });

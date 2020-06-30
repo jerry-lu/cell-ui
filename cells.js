@@ -45,13 +45,16 @@ class Cell {
         if (parents === undefined || parents.length == 0){
             return "\u03B1";
         } else {
+            let or = false
             parents.forEach(parent => {
                 if (map.has(parent)){
                     output.set(parent, map.get(parent));
+                    or = true;
                 } else {
                     output.set(parent, '\u00f8');
                 }
             });
+            // do something with the 'or' variable to indicate whether this is a valid sequence
             return output;
         }
     }
