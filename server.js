@@ -33,7 +33,9 @@ app.post('/input', function(req, res){
     let notebook = req.body.notebook;
     let output = deps.calculateDefUse(notebook);
     cells = output.cellList;
-    //console.log(deps.simulateExecutionOrder(cells, undefined, true));
+    cells.forEach(cell =>{
+        cell.convert();
+    });
     res.send(output);
 });
 
@@ -61,7 +63,6 @@ app.post('/compare', function(req, res) {
     let execOrder = req.body.order;
     let topDownState = deps.simulateExecutionOrder(cells, undefined, true);
     let otherState = deps.simulateExecutionOrder(cells, execOrder);
-    console.log(otherState);
     let output = deps.isSameState(topDownState, otherState);
     res.send({output: output, state: otherState});    
 });

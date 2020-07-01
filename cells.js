@@ -23,6 +23,10 @@ class Cell {
     addUse(u){
         this.uses.add(u);
     }
+    convert(){
+        this.defs = [...this.defs];
+        this.uses = [...this.uses];
+    }
     get idx(){
         return this._idx;
     }
@@ -71,7 +75,6 @@ class Cell {
                     output.set(definition, inputs);
                 });
             }
-            // do something with the 'or' variable to indicate whether this is a valid sequence
             return output;
         }
 

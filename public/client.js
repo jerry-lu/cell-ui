@@ -4,6 +4,7 @@ const header = {
 }
 
 let executionLog = []
+let cells;
 
 const input = document.getElementById("input-file");
 input.addEventListener('change', readNotebook);
@@ -23,6 +24,7 @@ function readNotebook() {
                 })
                 .then(function(data) {
                     displayCells(data.cellList);
+                    cells = data.cellList;
                     clearBox('order', 'Execution Order:');
                     clearBox('svg-canvas');
                     clearLog();
@@ -234,15 +236,27 @@ function clearLog(){
 
 function $(x) {return document.getElementById(x);} 
 
-function createGraph(flows){
+function intersection(arr1, arr2){
+    return arr1.filter(x => arr2.includes(x));
+}
+
+function createGraph(flows, labelEdges=false){
     let g = new dagreD3.graphlib.Graph()
         .setGraph({})
         .setDefaultEdgeLabel(function() { return {}; });
 
     flows.forEach(flow =>{
+        let defs = cells[flow.from].defs;
+        let uses = cells[flow.to].uses;
         g.setNode(flow.from, {label: String(flow.from)});
         g.setNode(flow.to, {label: String(flow.to)});
-        g.setEdge(flow.from, flow.to);
+
+        // make edges, include label if labelEdges is true
+        if (labelEdges){
+            g.setEdge(flow.from, flow.to, {label: intersection(defs, uses).join(' ')});
+        } else {
+            g.setEdge(flow.from, flow.to);
+        }
     }) 
 
     // Create the renderer
@@ -250,13 +264,23 @@ function createGraph(flows){
 
     // Set up an SVG group so that we can translate the final graph.
     var svg = d3.select("svg"),
-        svgGroup = svg.append("g");
+        svgGroup = svg.append("g"),
+        inner = svg.select("g");
+        
+    var zoom = d3.zoom().on("zoom", function() {
+        inner.attr("transform", d3.event.transform);
+        });
+    svg.call(zoom);
 
     // Run the renderer. This is what draws the final graph.
     render(d3.select("svg g"), g);
-
+    
     // Center the graph
     var xCenterOffset = (svg.attr("width") - g.graph().width) / 2;
     svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
-    svg.attr("height", g.graph().height + 40);
+
+    var initialScale = 0.9;
+    svg.call(zoom.transform, d3.zoomIdentity.translate((svg.attr("width") - g.graph().width * initialScale) / 2, 20).scale(initialScale));
+    svg.attr('height', g.graph().height * initialScale + 40);
+    
 }

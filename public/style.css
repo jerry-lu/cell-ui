@@ -90,7 +90,7 @@ section p {
 }
 
 svg {
-    overflow: visible;
+    overflow: hidden;
     margin: 0 auto;
 }
 
