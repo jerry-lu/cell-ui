@@ -23,7 +23,7 @@ function readNotebook() {
                 })
                 .then(function(data) {
                     displayCells(data.cellList);
-                    clearBox('order', 'Execution order:');
+                    clearBox('order', 'Execution Order:');
                     clearBox('svg-canvas');
                     clearLog();
                     createVisualizationButton();
@@ -154,7 +154,8 @@ function compareExecOrder(){
             throw new Error('Request failed');
         })
         .then(function(data) {
-            displayCompareResult(data);
+            displayCompareResult(data.output);
+            console.log(data.state);
         })
         .catch(function(error) {
             console.log(error);

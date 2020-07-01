@@ -54,16 +54,25 @@ module.exports = {
         for (let flow of flows.items) {
             let defCell;
             let useCell;
+            let def;
+            let use;
             let fromNodeLineNo = flow.fromNode.location.first_line;
             let toNodeLineNo = flow.toNode.location.first_line;
+
+            if (flow.fromRef !== undefined && flow.toRef !== undefined){
+                def = flow.fromRef.name;
+                use = flow.toRef.name;
+            }
     
             cells.forEach(cell => {
                 if (cell.lineNos !== undefined){
                     if (utils.isInCellBoundaries(fromNodeLineNo, cell.lineNos)){
                         defCell = cell;
+                        if (def !== undefined){ defCell.addDef(def); }
                     }
                     if (utils.isInCellBoundaries(toNodeLineNo, cell.lineNos)){
                         useCell = cell;
+                        if (use !== undefined){ useCell.addUse(use); }
                     }
                 }
             });
@@ -90,8 +99,8 @@ module.exports = {
 
     calculateDepsNeighbors: function(cells, idx){
         return {
-            ancestors: cells[idx]._ancestors,
-            descendants: cells[idx]._descendants
+            ancestors: cells[idx].ancestors,
+            descendants: cells[idx].descendants
         };
     },
 
@@ -105,7 +114,9 @@ module.exports = {
         sequence.forEach(idx => {
             let cell = cells[idx];
             if (cell.source !== undefined && cell.source.length > 0){
-                outputs.set(idx, cell.apply(outputs));
+                cell.defs.forEach(def => {
+                    outputs.set(def, {cell: idx, output: cell.apply(outputs)});
+                });
             }
         });
         return outputs;
