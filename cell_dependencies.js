@@ -30,7 +30,8 @@ module.exports = {
             var sourceCode = "\n\tif (True):\n";
             for (let line of cell.source) {
                 if (line[0] == '%' || line[0] == '!') {
-                    line = "#" + line;
+                    if (cell.source.length === 1){ line = 'print(\'filler text\')'; }
+                    else { line = "#" + line; }
                 }
                 sourceCode += "\t\t" + line;
             }
@@ -115,8 +116,13 @@ module.exports = {
             let cell = cells[idx];
             if (cell.source !== undefined && cell.source.length > 0){
                 cell.defs.forEach(def => {
-                    outputs.set(def, {cell: idx, output: cell.apply(outputs)});
+                    outputs.set(def, {cell: idx, args_in: cell.apply(outputs)});
                 });
+                cell.uses.forEach(use => {
+                    if(!outputs.has(use)){
+                        console.log('invalid exec order');
+                    };
+                })
             }
         });
         return outputs;

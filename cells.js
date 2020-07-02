@@ -59,7 +59,7 @@ class Cell {
     apply(map){
         let inputs = new Map();
         let output = new Map();
-        if (this.uses === undefined || this.uses.size == 0){
+        if (this.uses === undefined || this.uses.length == 0){
             return "\u03B1"; //alpha 
         } else {
             this.uses.forEach(input => {

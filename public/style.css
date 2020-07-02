@@ -48,9 +48,9 @@ button:hover{
     display: inline-block;
 }
 
-.redbox {
+.warningbox {
     padding: 20px;
-    background-color: #f44336; /* Red */
+    background-color: #fdd90b;
     color: white;
     margin-bottom: 15px;
 }

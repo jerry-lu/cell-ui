@@ -64,5 +64,5 @@ app.post('/compare', function(req, res) {
     let topDownState = deps.simulateExecutionOrder(cells, undefined, true);
     let otherState = deps.simulateExecutionOrder(cells, execOrder);
     let output = deps.isSameState(topDownState, otherState);
-    res.send({output: output, state: otherState});    
+    res.send({output: output, state: JSON.stringify(otherState)});
 });

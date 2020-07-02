@@ -5,7 +5,6 @@ const header = {
 
 let executionLog = []
 let cells;
-
 const input = document.getElementById("input-file");
 input.addEventListener('change', readNotebook);
 
@@ -28,6 +27,7 @@ function readNotebook() {
                     clearBox('order', 'Execution Order:');
                     clearBox('svg-canvas');
                     clearLog();
+                    clearResults();
                     createVisualizationButton();
                 })
                 .catch(function(error) {
@@ -100,7 +100,6 @@ function displayCells(cells){
         let pre = document.createElement('pre');
         pre.className = 'cell';
         pre.classList.add('unexecuted');
-
         pre.idx = cell._idx;
 
         let cellBody = document.createElement('code');
@@ -126,6 +125,7 @@ function setValid(cells){
 
 function updateExecOrder(idx){
     executionLog.push(idx);
+    compareExecOrder();
     let order = $('order');
     if (order === null){
         let orderDiv = document.getElementById('order-div');
@@ -135,13 +135,13 @@ function updateExecOrder(idx){
     order.innerHTML = 'Execution Order: ' + executionLog;
 
     let compare = $('compare');
-    if (compare === null){
+    /* if (compare === null){
         let compare = document.createElement('button');
         compare.id = "compare";
         compare.innerHTML = 'Compare with top-down order';
         compare.addEventListener('click', compareExecOrder);
         $('order-div').appendChild(compare);
-    }
+    } */
     addResetButton();
 }
 
@@ -165,6 +165,7 @@ function compareExecOrder(){
 }
 
 function displayCompareResult(data){
+    clearResults();
     let result = document.createElement('div');
     result.id = 'result';
     if (data === true){
@@ -172,7 +173,7 @@ function displayCompareResult(data){
         result.classList.add('greenbox');
     } else {
         result.innerHTML = 'Current state does not match top-down execution';
-        result.classList.add('redbox');
+        result.classList.add('warningbox');
     }
     $('order-div').appendChild(result);
 }
@@ -185,6 +186,10 @@ function resetExecutionOrder(){
     });
     let order = $('order');
     order.innerHTML = 'Execution Order:';
+    clearResults();
+}
+
+function clearResults(){
     let result = $('result');
     while (result !== null){
         result.remove();
@@ -240,7 +245,7 @@ function intersection(arr1, arr2){
     return arr1.filter(x => arr2.includes(x));
 }
 
-function createGraph(flows, labelEdges=false){
+function createGraph(flows, labelEdges=true){
     let g = new dagreD3.graphlib.Graph()
         .setGraph({})
         .setDefaultEdgeLabel(function() { return {}; });
@@ -257,7 +262,13 @@ function createGraph(flows, labelEdges=false){
         } else {
             g.setEdge(flow.from, flow.to);
         }
-    }) 
+    });
+
+    g.nodes().forEach(function(v) {
+        var node = g.node(v);
+        // Round the corners of the nodes
+        node.rx = node.ry = 5;
+    });
 
     // Create the renderer
     var render = new dagreD3.render();
