@@ -1,4 +1,4 @@
-const {CellOutput} = require('./state.js');
+const {CellOutput, State} = require('./state.js');
 class Cell {
     constructor(cellJson, idx){
         this.cellType = cellJson.cell_type;
@@ -9,6 +9,7 @@ class Cell {
         this.defs = new Set();
         this.uses = new Set();
         this.cellFunc = 'f';
+        this.version = 0;
         this.idx = idx;
         this.topDownOutput = undefined;
     }
@@ -46,17 +47,31 @@ class Cell {
     get currentInput(){
         return this._currentInput
     }
-    
+
     nextCellFunc(){
         let code = this.cellFunc.charCodeAt();
         this.cellFunc = String.fromCharCode(code + 1);
     }
+    incrementVersion(key='version'){
+        this[key] = (this[key] + 1) || 0;
+    }
     apply(state){
-        let globalState;
-        let cellState;
-        let cellFunc = this.cellFunc;
-        let foo = new CellOutput(this._idx, state, this.defs);
-        return {globalState: globalState, cellState: cellState}
+        let globalState = state;
+        let cellState = new State();
+        let output = new CellOutput(this._idx, this.version, state, this.defs, this.uses);
+        if (output.argsIn === undefined){
+            this.defs.forEach(def => {
+                cellState.update(def, 'α_' + this.version);
+            });
+        } else {
+            this.defs.forEach(def => {
+                cellState.update(def, output);
+            });
+        }
+        for (const [key, value] of Object.entries(cellState)) {
+            globalState.update(key, value);
+        }
+        return {globalState: globalState, cellState: cellState};
     }
 }
 

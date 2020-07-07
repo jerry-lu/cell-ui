@@ -107,28 +107,14 @@ module.exports = {
     },
 
     // cells is a list of cell objects
-    simulateExecutionOrder: function(cells, sequence, isTopDown){
-        let outputs = new Map();
-        if (sequence === undefined || isTopDown){
-            sequence = [...Array(cells.length).keys()];
+    // globalState is passed from server.js so we don't have to recalculate
+    // everything that was run previously in the sequence
+    // idx is the index of the cell that is currently being run
+    simulateExecutionOrder: function(cell, globalState){
+        if (globalState === undefined){
+            globalState = new State();
         }
-        sequence.forEach(idx => {
-            let cell = cells[idx];
-            if (cell.source !== undefined && cell.source.length > 0){
-                cell.defs.forEach(def => {
-                    outputs.set(def, {cell: idx, args_in: cell.apply(outputs)});
-                });
-                cell.uses.forEach(use => {
-                    if(!outputs.has(use)){
-                        console.log('invalid exec order');
-                    };
-                })
-            }
-        });
-
-        // todo: change outputs to just reflect the variables defined in the
-        // _last_ cell of the sequence
-        return outputs;
+        return cell.apply(globalState);
     },
 
     simulateTopDown: function(cells){
@@ -144,10 +130,6 @@ module.exports = {
 
 
     isSameState: function(x, y){
-        if(x.length !== y.length){
-            return false;
-        } else {
-            return _.isEqual(x, y);
-        }
+        return (x.toString() === y.toString());
     }
 }

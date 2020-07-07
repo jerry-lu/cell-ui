@@ -39,7 +39,14 @@ function readNotebook() {
 function runCell(event){
     let cell = event.target.parentElement;
     let idx = cell.parentElement.idx;
-    fetch('/calculateDeps', {
+    updateExecOrder(idx);
+    compareExecOrder(idx, cell);
+}
+
+function modifyCell(event){
+    let cell = event.target.parentElement;
+    let idx = cell.parentElement.idx;
+    fetch('/modify', {
         method: 'POST',
         headers: header,
         body: JSON.stringify({ idx: idx })
@@ -49,18 +56,18 @@ function runCell(event){
             throw new Error('request failed.');
         })
         .then(function(data){
-            let staleCells = getCellsfromIndex(data);
-            setInvalid(staleCells);
+            let invalidCells = getCellsfromIndex(data);
+            setInvalid(invalidCells);
             setValid([cell.parentElement]);
-            updateExecOrder(idx);
-            compareExecOrder(idx);
+            runCell(event);
         })
         .catch(function(error){
             console.log(error);
         });
 }
 
-function compareExecOrder(idx){
+
+function compareExecOrder(idx, cell){
     fetch('/compare', {
         method: 'POST',
         headers: header,
@@ -74,8 +81,7 @@ function compareExecOrder(idx){
             throw new Error('Request failed');
         })
         .then(function(data) {
-            displayCompareResult(data.output);
-            console.log(data.state);
+            displayCompareResult(data, cell);
         })
         .catch(function(error) {
             console.log(error);
@@ -122,20 +128,28 @@ function displayCells(cells){
     clearBox('cells-div');
     for (let cell of cells){
         let pre = document.createElement('pre');
-        pre.className = 'cell';
+        pre.classList.add('cell');
         pre.classList.add('unexecuted');
         pre.idx = cell._idx;
 
         let cellBody = document.createElement('code');
-        cellBody.innerHTML = cell.source.join('');
 
         let execButton = document.createElement('button');
         execButton.className = 'cellButton';
         execButton.innerHTML = cell._idx;
         execButton.addEventListener('click', runCell);
 
+        let modButton = document.createElement('button');
+        modButton.className = 'modButton';
+        modButton.innerHTML = 'Δ';
+        modButton.addEventListener('click', modifyCell);
+
+        cellBody.innerHTML = cell.source.join('');
         cellBody.appendChild(execButton);
+        cellBody.appendChild(modButton);
         pre.appendChild(cellBody);
+
+
         document.getElementById('cells-div').appendChild(pre);
     }
 }
@@ -159,29 +173,72 @@ function updateExecOrder(idx){
     addResetButton();
 }
 
-function displayCompareResult(data){
-    clearResults();
-    let result = document.createElement('div');
-    result.id = 'result';
-    if (data === true){
-        result.innerHTML = 'Same state as top-down execution';
-        result.classList.add('greenbox');
-    } else {
-        result.innerHTML = 'Current state does not match top-down execution';
-        result.classList.add('warningbox');
+function displayCompareResult(data, cell){
+    let pre = cell.parentElement;
+    const searchString = 'outputJson' + pre.idx;
+    let output = document.getElementById(searchString);
+    if (output === null){
+        output = document.createElement('output');
+        output.id = searchString;
+        pre.appendChild(output);
     }
-    $('order-div').appendChild(result);
+    output.innerHTML = 'output state:' + JSON.stringify(data.state, null, 1);
+
+    let trueOutput = document.getElementById('trueOutput' + pre.idx);
+    pre.classList.remove('unexecuted');
+    pre.classList.remove('stale');
+    if (data.output){
+        pre.classList.remove('redbox');
+        pre.classList.add('greenbox');
+        if (trueOutput !== null){
+            trueOutput.innerHTML = '';
+        }
+    } else {
+        pre.classList.remove('greenbox');
+        pre.classList.add('redbox');
+        if (trueOutput === null){
+            trueOutput = document.createElement('output');
+            trueOutput.id = 'trueOutput' + pre.idx;
+            pre.appendChild(trueOutput);
+        }
+        trueOutput.innerHTML = 'top-down state:' + JSON.stringify(data.trueState, null, 1);
+    }
 }
 
 function resetExecutionOrder(){
+    fetch('/reset', {
+        method: 'POST',
+    });
     executionLog = [];
     Array.from(document.getElementsByClassName('cell')).forEach(element =>{
         element.classList.remove('stale');
+        element.classList.remove('redbox');
+        element.classList.remove('greenbox');
         element.classList.add('unexecuted');
+    });
+
+    Array.from(document.getElementsByTagName('output')).forEach(element =>{
+        element.innerHTML = '';
     });
     let order = $('order');
     order.innerHTML = 'Execution Order:';
     clearResults();
+}
+
+function resetModifications(){
+    fetch('/resetMods', {
+        method: 'POST',
+    });
+    Array.from(document.getElementsByClassName('cell')).forEach(element =>{
+        element.classList.remove('stale');
+        element.classList.remove('redbox');
+        element.classList.remove('greenbox');
+        element.classList.add('unexecuted');
+    });
+
+    Array.from(document.getElementsByTagName('output')).forEach(element =>{
+        element.innerHTML = '';
+    });
 }
 
 function clearResults(){
@@ -201,10 +258,20 @@ function addResetButton(){
         reset.addEventListener('click', resetExecutionOrder);
         $('order-div').appendChild(reset);
     }
+
+    let modReset = $('modReset');
+    if (modReset === null){
+        let modReset = document.createElement('button');
+        modReset.id = 'modReset';
+        modReset.innerHTML = 'Reset Modifications';
+        modReset.addEventListener('click', resetModifications);
+        $('order-div').appendChild(modReset);
+    }
+
 }
 
 // indicate which cells are 'invalid'. Cells are invalid
-// if a parent cell was executed.
+// if a parent cell was modified.
 function setInvalid(cells){
     cells.forEach(element => {
         element.classList.add('stale');

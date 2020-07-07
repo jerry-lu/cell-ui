@@ -5,18 +5,23 @@ class State{
         this[key] = value;
     }
     toString(){
-       //return Object.entries(this).sort((a, b) => b[0].localeCompare(a[0]));
        return JSON.stringify(this);
     }
 }
 
 class CellOutput {
-    constructor(idx, state, defs){
+    constructor(idx, version, state, defs, uses){
         this.idx = idx;
-        this.state = new State();
-        for (const [key, value] of Object.entries(state)) {
-            if (defs.includes(key)){
-                this.state.update(key, value);
+        this.v = version;
+        this.argsIn = new State();
+        //get subset of state that we're interested in
+        if (uses.length == 0){
+            this.argsIn = undefined;
+        } else {
+            for (const [key, value] of Object.entries(state)) {
+                if (uses.includes(key)){
+                    this.argsIn.update(key, value);
+                }
             }
         }
     }

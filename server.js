@@ -4,6 +4,7 @@ var express = require('express');
 var app = express();
 var port = 8080;
 var deps = require('./cell_dependencies');
+const { State, CellOutput } = require('./state');
 
 app.use(express.json({
     limit: '10mb',
@@ -28,7 +29,8 @@ app.get('/', (req, res) => {
 });
 
 let cells = [];
-let global_state;
+let trueStates = [];
+let globalState = new State();
 
 app.post('/input', function(req, res){
     let notebook = req.body.notebook;
@@ -37,13 +39,23 @@ app.post('/input', function(req, res){
     cells.forEach(cell =>{
         cell.convert();
     });
-    // simulate top down execution order
+    trueStates = deps.simulateTopDown(cells);
     res.send(output);
 });
 
 app.post('/calculateDeps', function(req, res){
     let idx = req.body.idx;
     let output = deps.calculateDepsNeighbors(cells, idx);
+    res.send(output.descendants);
+});
+
+app.post('/modify', function(req, res){
+    let idx = req.body.idx;
+    let cell = cells[idx];
+    cell.incrementVersion();
+    trueStates = deps.simulateTopDown(cells);
+    let output = deps.calculateDepsNeighbors(cells, idx);
+
     res.send(output.descendants);
 });
 
@@ -62,9 +74,22 @@ app.get('/edges', function(req, res){
 });
 
 app.post('/compare', function(req, res) {
-    let execOrder = req.body.order;
-    let topDownState = deps.simulateExecutionOrder(cells, undefined, true);
-    let otherState = deps.simulateExecutionOrder(cells, execOrder);
-    let output = deps.isSameState(topDownState, otherState);
-    res.send({output: output, state: JSON.stringify(otherState)});
+    let idx = req.body.index;
+    let result = deps.simulateExecutionOrder(cells[idx], globalState);
+    globalState = result.globalState;
+    let currentState = result.cellState;
+    let topDownState = trueStates[idx];
+    let output = deps.isSameState(topDownState, currentState);
+    res.send({output: output, state: currentState, trueState: trueStates[idx]});
+});
+
+app.post('/reset', function(req, res){
+    globalState = new State();
+});
+
+app.post('/resetMods', function(req, res){
+    cells.forEach(cell => {
+        cell.version = 0;
+    });
+    trueStates = deps.simulateTopDown(cells);
 });
