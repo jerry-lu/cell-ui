@@ -1,5 +1,4 @@
 .cell {
-    margin-left: 50px;
     border: 2px solid #000;
     position: relative;
 }
@@ -25,6 +24,11 @@ output {
     display: inline-block;
     vertical-align: top;
     padding: 10px;
+    white-space: pre;
+}
+
+pre {
+    margin-left: 50px;
 }
 
 code{
@@ -69,21 +73,6 @@ button:hover{
     border-radius: 50%;
     display: inline-block;
 }
-
-.warningbox {
-    padding: 20px;
-    background-color: #fdd90b;
-    color: white;
-    margin-bottom: 15px;
-}
-
-.filledgreenbox {
-    padding: 20px;
-    background-color: green;
-    color: white;
-    margin-bottom: 15px;
-}
-  
 
 body {
     width: 960px;

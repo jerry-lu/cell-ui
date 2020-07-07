@@ -5,10 +5,11 @@ const header = {
 
 let executionLog = []
 let cells;
-const input = document.getElementById("input-file");
-input.addEventListener('change', readNotebook);
 
-function readNotebook() {
+$("input-file").addEventListener('change', readNotebook);
+
+function readNotebook(event) {
+    const input = event.target;
     let file = input.files[0];
     readFileContent(file)
         .then(function(result){
@@ -36,16 +37,9 @@ function readNotebook() {
         });
 }
 
-function runCell(event){
-    let cell = event.target.parentElement;
-    let idx = cell.parentElement.idx;
-    updateExecOrder(idx);
-    compareExecOrder(idx, cell);
-}
-
 function modifyCell(event){
     let cell = event.target.parentElement;
-    let idx = cell.parentElement.idx;
+    let idx = cell.idx;
     fetch('/modify', {
         method: 'POST',
         headers: header,
@@ -58,14 +52,13 @@ function modifyCell(event){
         .then(function(data){
             let invalidCells = getCellsfromIndex(data);
             setInvalid(invalidCells);
-            setValid([cell.parentElement]);
+            setValid([cell]);
             runCell(event);
         })
         .catch(function(error){
             console.log(error);
         });
 }
-
 
 function compareExecOrder(idx, cell){
     fetch('/compare', {
@@ -88,7 +81,6 @@ function compareExecOrder(idx, cell){
         });
 }
 
-
 function showGraph(){
     fetch('/edges', {method: 'GET'})
         .then(function(response) {
@@ -103,15 +95,25 @@ function showGraph(){
         });
 }
 
+function runCell(event){
+    let cell = event.target.parentElement;
+    let idx = cell.idx;
+    updateExecOrder(idx);
+    compareExecOrder(idx, cell);
+}
+
 function createVisualizationButton(){
-    let check = $('displayEdges');
-    if (check === null){
-        let buttonDiv = $('button-div');
+    addButton('displayEdges', 'Display dependency visualization', showGraph, 'button-div');
+}
+
+function addButton(id, innerHTML, func, parent){
+    let button = $(id);
+    if (button === null){
         let button = document.createElement('button');
-        button.id = 'displayEdges';
-        button.innerHTML = 'Display dependency visualization';
-        button.addEventListener('click', showGraph);
-        buttonDiv.appendChild(button);
+        button.id = id;
+        button.innerHTML = innerHTML;
+        button.addEventListener('click', func);
+        $(parent).appendChild(button)
     }
 }
 
@@ -128,11 +130,12 @@ function displayCells(cells){
     clearBox('cells-div');
     for (let cell of cells){
         let pre = document.createElement('pre');
-        pre.classList.add('cell');
-        pre.classList.add('unexecuted');
-        pre.idx = cell._idx;
 
         let cellBody = document.createElement('code');
+        cellBody.classList.add('cell');
+        cellBody.idx = cell._idx;
+        cellBody.classList.add('unexecuted');
+        cellBody.innerHTML = cell.source.join('');
 
         let execButton = document.createElement('button');
         execButton.className = 'cellButton';
@@ -144,13 +147,10 @@ function displayCells(cells){
         modButton.innerHTML = 'Δ';
         modButton.addEventListener('click', modifyCell);
 
-        cellBody.innerHTML = cell.source.join('');
         cellBody.appendChild(execButton);
         cellBody.appendChild(modButton);
         pre.appendChild(cellBody);
-
-
-        document.getElementById('cells-div').appendChild(pre);
+        $('cells-div').appendChild(pre);
     }
 }
 
@@ -165,43 +165,44 @@ function updateExecOrder(idx){
     executionLog.push(idx);
     let order = $('order');
     if (order === null){
-        let orderDiv = document.getElementById('order-div');
+        let orderDiv = $('order-div');
         let order = document.createElement('h4');
         orderDiv.appendChild(order);
     }
     order.innerHTML = 'Execution Order: ' + executionLog;
-    addResetButton();
+    addButton('reset', 'Reset Execution Order', resetExecutionOrder, 'order-div');
+    addButton('modReset', 'Reset Modifications', resetModifications, 'order-div');
 }
 
 function displayCompareResult(data, cell){
     let pre = cell.parentElement;
-    const searchString = 'outputJson' + pre.idx;
+    const searchString = 'outputJson' + cell.idx;
     let output = document.getElementById(searchString);
     if (output === null){
         output = document.createElement('output');
         output.id = searchString;
         pre.appendChild(output);
     }
-    output.innerHTML = 'output state:' + JSON.stringify(data.state, null, 1);
+    output.innerHTML = 'output state:\n' + data.state;
 
-    let trueOutput = document.getElementById('trueOutput' + pre.idx);
-    pre.classList.remove('unexecuted');
-    pre.classList.remove('stale');
+    let trueOutput = document.getElementById('trueOutput' + cell.idx);
+    cell.classList.remove('unexecuted');
+    cell.classList.remove('stale');
     if (data.output){
-        pre.classList.remove('redbox');
-        pre.classList.add('greenbox');
+        cell.classList.remove('redbox');
+        cell.classList.add('greenbox');
         if (trueOutput !== null){
             trueOutput.innerHTML = '';
         }
     } else {
-        pre.classList.remove('greenbox');
-        pre.classList.add('redbox');
+        cell.classList.remove('greenbox');
+        cell.classList.add('redbox');
         if (trueOutput === null){
             trueOutput = document.createElement('output');
-            trueOutput.id = 'trueOutput' + pre.idx;
+            trueOutput.id = 'trueOutput' + cell.idx;
             pre.appendChild(trueOutput);
         }
-        trueOutput.innerHTML = 'top-down state:' + JSON.stringify(data.trueState, null, 1);
+        trueOutput.innerHTML = 'top-down state:\n' + data.trueState;
     }
 }
 
@@ -235,7 +236,6 @@ function resetModifications(){
         element.classList.remove('greenbox');
         element.classList.add('unexecuted');
     });
-
     Array.from(document.getElementsByTagName('output')).forEach(element =>{
         element.innerHTML = '';
     });
@@ -249,32 +249,13 @@ function clearResults(){
     }
 }
 
-function addResetButton(){
-    let reset = $('reset');
-    if (reset === null){
-        let reset = document.createElement('button');
-        reset.id = 'reset';
-        reset.innerHTML = 'Reset Execution Order';
-        reset.addEventListener('click', resetExecutionOrder);
-        $('order-div').appendChild(reset);
-    }
-
-    let modReset = $('modReset');
-    if (modReset === null){
-        let modReset = document.createElement('button');
-        modReset.id = 'modReset';
-        modReset.innerHTML = 'Reset Modifications';
-        modReset.addEventListener('click', resetModifications);
-        $('order-div').appendChild(modReset);
-    }
-
-}
-
 // indicate which cells are 'invalid'. Cells are invalid
 // if a parent cell was modified.
 function setInvalid(cells){
     cells.forEach(element => {
         element.classList.add('stale');
+        element.classList.remove('redbox');
+        element.classList.remove('greenbox');
     });
 }
 
@@ -355,5 +336,4 @@ function createGraph(flows, labelEdges=true){
     var initialScale = 0.9;
     svg.call(zoom.transform, d3.zoomIdentity.translate((svg.attr("width") - g.graph().width * initialScale) / 2, 20).scale(initialScale));
     svg.attr('height', g.graph().height * initialScale + 40);
-    
 }

@@ -33,7 +33,7 @@ module.exports = {
 		while (stack.length > 0){
 			let current = stack.pop();
 			visited.add(current);
-			searchDependents ? neighbors = current._descendants : neighbors = current._ancestors;
+			searchDependents ? neighbors = current.descendants : neighbors = current.ancestors;
 			if (neighbors !== undefined){
 				neighbors.forEach(neighbor => {
 					neighbor = cells[neighbor];

@@ -40,6 +40,7 @@ app.post('/input', function(req, res){
         cell.convert();
     });
     trueStates = deps.simulateTopDown(cells);
+    globalState = new State();
     res.send(output);
 });
 
@@ -54,8 +55,7 @@ app.post('/modify', function(req, res){
     let cell = cells[idx];
     cell.incrementVersion();
     trueStates = deps.simulateTopDown(cells);
-    let output = deps.calculateDepsNeighbors(cells, idx);
-
+    let output = deps.calculateDepsAll(cells, idx);
     res.send(output.descendants);
 });
 
@@ -80,7 +80,10 @@ app.post('/compare', function(req, res) {
     let currentState = result.cellState;
     let topDownState = trueStates[idx];
     let output = deps.isSameState(topDownState, currentState);
-    res.send({output: output, state: currentState, trueState: trueStates[idx]});
+    res.send({output: output,
+        state: currentState.toString(),
+        trueState: trueStates[idx].toString()
+    });
 });
 
 app.post('/reset', function(req, res){
