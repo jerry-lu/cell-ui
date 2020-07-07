@@ -28,6 +28,7 @@ app.get('/', (req, res) => {
 });
 
 let cells = [];
+let global_state;
 
 app.post('/input', function(req, res){
     let notebook = req.body.notebook;
@@ -36,6 +37,7 @@ app.post('/input', function(req, res){
     cells.forEach(cell =>{
         cell.convert();
     });
+    // simulate top down execution order
     res.send(output);
 });
 

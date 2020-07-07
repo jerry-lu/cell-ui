@@ -1,5 +1,6 @@
-const utils = require("./cell_utils.js");
-const { Cell } = require("./cells.js");
+const utils = require('./cell_utils.js');
+const { Cell } = require('./cells.js');
+const { State, CellOutput } = require('./state.js');
 const _ = require("lodash");
 
 module.exports = {
@@ -106,7 +107,6 @@ module.exports = {
     },
 
     // cells is a list of cell objects
-    // sequence is list of ints representing cell indices
     simulateExecutionOrder: function(cells, sequence, isTopDown){
         let outputs = new Map();
         if (sequence === undefined || isTopDown){
@@ -125,8 +125,23 @@ module.exports = {
                 })
             }
         });
+
+        // todo: change outputs to just reflect the variables defined in the
+        // _last_ cell of the sequence
         return outputs;
     },
+
+    simulateTopDown: function(cells){
+        let state = new State();
+        let outputs = [];
+        cells.forEach( cell => {
+            let result = cell.apply(state);
+            state = result.globalState;
+            outputs.push(result.cellState);
+        });
+        return outputs;
+    },
+
 
     isSameState: function(x, y){
         if(x.length !== y.length){

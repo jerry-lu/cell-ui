@@ -53,11 +53,35 @@ function runCell(event){
             setInvalid(staleCells);
             setValid([cell.parentElement]);
             updateExecOrder(idx);
+            compareExecOrder(idx);
         })
         .catch(function(error){
             console.log(error);
         });
 }
+
+function compareExecOrder(idx){
+    fetch('/compare', {
+        method: 'POST',
+        headers: header,
+        body: JSON.stringify({
+            index: idx,
+            order: executionLog
+        })
+    })
+        .then(function(response) {
+            if(response.ok) return response.json();
+            throw new Error('Request failed');
+        })
+        .then(function(data) {
+            displayCompareResult(data.output);
+            console.log(data.state);
+        })
+        .catch(function(error) {
+            console.log(error);
+        });
+}
+
 
 function showGraph(){
     fetch('/edges', {method: 'GET'})
@@ -125,7 +149,6 @@ function setValid(cells){
 
 function updateExecOrder(idx){
     executionLog.push(idx);
-    compareExecOrder();
     let order = $('order');
     if (order === null){
         let orderDiv = document.getElementById('order-div');
@@ -133,35 +156,7 @@ function updateExecOrder(idx){
         orderDiv.appendChild(order);
     }
     order.innerHTML = 'Execution Order: ' + executionLog;
-
-    let compare = $('compare');
-    /* if (compare === null){
-        let compare = document.createElement('button');
-        compare.id = "compare";
-        compare.innerHTML = 'Compare with top-down order';
-        compare.addEventListener('click', compareExecOrder);
-        $('order-div').appendChild(compare);
-    } */
     addResetButton();
-}
-
-function compareExecOrder(){
-    fetch('/compare', {
-        method: 'POST',
-        headers: header,
-        body: JSON.stringify({order: executionLog})
-    })
-        .then(function(response) {
-            if(response.ok) return response.json();
-            throw new Error('Request failed');
-        })
-        .then(function(data) {
-            displayCompareResult(data.output);
-            console.log(data.state);
-        })
-        .catch(function(error) {
-            console.log(error);
-        });
 }
 
 function displayCompareResult(data){

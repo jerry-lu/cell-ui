@@ -1,15 +1,16 @@
+const {CellOutput} = require('./state.js');
 class Cell {
     constructor(cellJson, idx){
         this.cellType = cellJson.cell_type;
         this.executionCount = cellJson.execution_count;
-        //this.metadata = cellJson.metadata;
-        this.outputs = cellJson.outputs;
         this.source = cellJson.source;
         this.ancestors = [];
         this.descendants = [];
         this.defs = new Set();
         this.uses = new Set();
+        this.cellFunc = 'f';
         this.idx = idx;
+        this.topDownOutput = undefined;
     }
     addAncestor(a){
         this.ancestors.push(a);
@@ -27,6 +28,12 @@ class Cell {
         this.defs = [...this.defs];
         this.uses = [...this.uses];
     }
+    get topDownOutput(){
+        return this._topDownOutput;
+    }
+    set topDownOutput(topDownOutput){
+        this._topDownOutput = topDownOutput;
+    }
     get idx(){
         return this._idx;
     }
@@ -39,45 +46,17 @@ class Cell {
     get currentInput(){
         return this._currentInput
     }
-    old_apply(map){
-        let output = new Map();
-        let parents = this.ancestors;
-        if (parents === undefined || parents.size == 0){
-            return "\u03B1";
-        } else {
-            parents.forEach(parent => {
-                if (map.has(parent)){
-                    output.set(parent, map.get(parent));
-                    or = true;
-                } else {
-                    output.set(parent, '\u00f8');
-                }
-            });
-            return output;
-        }
+    
+    nextCellFunc(){
+        let code = this.cellFunc.charCodeAt();
+        this.cellFunc = String.fromCharCode(code + 1);
     }
-    apply(map){
-        let inputs = new Map();
-        let output = new Map();
-        if (this.uses === undefined || this.uses.length == 0){
-            return "\u03B1"; //alpha 
-        } else {
-            this.uses.forEach(input => {
-                if (map.has(input)){
-                    inputs.set(input, map.get(input));
-                } else {
-                    inputs.set(input, '\u00f8'); //ø
-                }
-            });
-
-            if (this.defs !== undefined){
-                this.defs.forEach(definition => {
-                    output.set(definition, inputs);
-                });
-            }
-            return output;
-        }
-
+    apply(state){
+        let globalState;
+        let cellState;
+        let cellFunc = this.cellFunc;
+        let foo = new CellOutput(this._idx, state, this.defs);
+        return {globalState: globalState, cellState: cellState}
     }
 }
 
