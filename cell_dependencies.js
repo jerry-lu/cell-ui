@@ -1,7 +1,6 @@
 const utils = require('./cell_utils.js');
 const { Cell } = require('./cells.js');
 const { State, CellOutput } = require('./state.js');
-const _ = require("lodash");
 
 module.exports = {
     constructCells: function(notebook){
@@ -127,7 +126,6 @@ module.exports = {
         });
         return outputs;
     },
-
 
     isSameState: function(x, y){
         return (x.toString() === y.toString());

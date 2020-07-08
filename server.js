@@ -86,11 +86,11 @@ app.post('/compare', function(req, res) {
     });
 });
 
-app.post('/reset', function(req, res){
+app.post('/reset', function(){
     globalState = new State();
 });
 
-app.post('/resetMods', function(req, res){
+app.post('/resetMods', function(){
     cells.forEach(cell => {
         cell.version = 0;
     });

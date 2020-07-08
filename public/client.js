@@ -211,18 +211,7 @@ function resetExecutionOrder(){
         method: 'POST',
     });
     executionLog = [];
-    Array.from(document.getElementsByClassName('cell')).forEach(element =>{
-        element.classList.remove('stale');
-        element.classList.remove('redbox');
-        element.classList.remove('greenbox');
-        element.classList.add('unexecuted');
-    });
-
-    Array.from(document.getElementsByTagName('output')).forEach(element =>{
-        element.innerHTML = '';
-    });
-    let order = $('order');
-    order.innerHTML = 'Execution Order:';
+    $('order').innerHTML = 'Execution Order:';
     clearResults();
 }
 
@@ -230,6 +219,10 @@ function resetModifications(){
     fetch('/resetMods', {
         method: 'POST',
     });
+    clearResults();
+}
+
+function clearResults(){
     Array.from(document.getElementsByClassName('cell')).forEach(element =>{
         element.classList.remove('stale');
         element.classList.remove('redbox');
@@ -239,14 +232,6 @@ function resetModifications(){
     Array.from(document.getElementsByTagName('output')).forEach(element =>{
         element.innerHTML = '';
     });
-}
-
-function clearResults(){
-    let result = $('result');
-    while (result !== null){
-        result.remove();
-        result = $('result');
-    }
 }
 
 // indicate which cells are 'invalid'. Cells are invalid

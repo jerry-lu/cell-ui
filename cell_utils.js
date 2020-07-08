@@ -19,12 +19,6 @@ module.exports = {
 		return flows;
 	},
 
-	getRandomInt: function(min, max) {
-		min = Math.ceil(min);
-		max = Math.floor(max);
-		return Math.floor(Math.random() * (max - min + 1)) + min;
-	},
-
 	breadthFirstSearch: function(cells, idx, searchDependents=false){
 		let cell = cells[idx];
 		let visited = new Set();
