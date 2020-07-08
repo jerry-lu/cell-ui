@@ -23,13 +23,13 @@ function readNotebook(event) {
                     throw new Error('Request failed');
                 })
                 .then(function(data) {
-                    displayCells(data.cellList);
                     cells = data.cellList;
+                    displayCells(cells);
                     clearBox('order', 'Execution Order:');
                     clearBox('svg-canvas');
-                    clearLog();
                     clearResults();
-                    createVisualizationButton();
+                    executionLog = [];
+                    addButton('displayEdges', 'Show dependency visualization', showGraph, 'button-div');
                 })
                 .catch(function(error) {
                     console.log(error);
@@ -49,13 +49,14 @@ function modifyCell(event){
             if(response.ok) return response.json();
             throw new Error('request failed.');
         })
-        .then(function(data){
-            let invalidCells = getCellsfromIndex(data);
+        .then(function(data) {
+            let invalidCells = getCellsfromIndex(data.invalidCells);
+            cell.version = data.version;
             setInvalid(invalidCells);
             setValid([cell]);
             runCell(event);
         })
-        .catch(function(error){
+        .catch(function(error) {
             console.log(error);
         });
 }
@@ -66,7 +67,6 @@ function compareExecOrder(idx, cell){
         headers: header,
         body: JSON.stringify({
             index: idx,
-            order: executionLog
         })
     })
         .then(function(response) {
@@ -87,10 +87,10 @@ function showGraph(){
             if(response.ok) return response.json();
             throw new Error('Request failed');
         })
-        .then(function(data){
+        .then(function(data) {
             createGraph(data);
         })
-        .catch(function(error){
+        .catch(function(error) {
             console.log(error);
         });
 }
@@ -98,12 +98,9 @@ function showGraph(){
 function runCell(event){
     let cell = event.target.parentElement;
     let idx = cell.idx;
-    updateExecOrder(idx);
+    let version = cell.version;
+    updateExecOrder(idx, version);
     compareExecOrder(idx, cell);
-}
-
-function createVisualizationButton(){
-    addButton('displayEdges', 'Display dependency visualization', showGraph, 'button-div');
 }
 
 function addButton(id, innerHTML, func, parent){
@@ -134,6 +131,7 @@ function displayCells(cells){
         let cellBody = document.createElement('code');
         cellBody.classList.add('cell');
         cellBody.idx = cell._idx;
+        cellBody.version = cell.version;
         cellBody.classList.add('unexecuted');
         cellBody.innerHTML = cell.source.join('');
 
@@ -161,15 +159,14 @@ function setValid(cells){
     });
 }
 
-function updateExecOrder(idx){
-    executionLog.push(idx);
+function updateExecOrder(idx, version){
     let order = $('order');
     if (order === null){
-        let orderDiv = $('order-div');
         let order = document.createElement('h4');
-        orderDiv.appendChild(order);
+        $('order-div').appendChild(order);
     }
-    order.innerHTML = 'Execution Order: ' + executionLog;
+    executionLog.push(`${idx}_v${version}`);
+    order.innerHTML = 'Execution Order: ' + executionLog.join(', ');
     addButton('reset', 'Reset Execution Order', resetExecutionOrder, 'order-div');
     addButton('modReset', 'Reset Modifications', resetModifications, 'order-div');
 }
@@ -263,9 +260,14 @@ function clearBox(elementID, text)
     document.getElementById(elementID).innerHTML = newstr;
 }
 
-function clearLog(){
-    executionLog = [];
-}
+function toggleVisibility(id) {
+    var element = $(id);
+    if (element.style.visibility === 'hidden') {
+        element.style.visibility = 'visible';
+    } else {
+        element.style.visibility = 'hidden';
+    }
+} 
 
 function $(x) {return document.getElementById(x);} 
 

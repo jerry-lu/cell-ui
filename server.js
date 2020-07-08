@@ -4,7 +4,7 @@ var express = require('express');
 var app = express();
 var port = 8080;
 var deps = require('./cell_dependencies');
-const { State, CellOutput } = require('./state');
+const { State } = require('./state');
 
 app.use(express.json({
     limit: '10mb',
@@ -12,8 +12,8 @@ app.use(express.json({
 })) // for parsing application/json
 
 app.use(express.urlencoded({
-    extended: true,
     limit: '10mb',
+    extended: true
 })) // for parsing application/x-www-form-urlencoded
 
 // serve files from the public dir
@@ -56,7 +56,10 @@ app.post('/modify', function(req, res){
     cell.incrementVersion();
     trueStates = deps.simulateTopDown(cells);
     let output = deps.calculateDepsAll(cells, idx);
-    res.send(output.descendants);
+    res.send({
+        invalidCells: output.descendants,
+        version: cell.version
+    });
 });
 
 app.get('/edges', function(req, res){
@@ -80,7 +83,8 @@ app.post('/compare', function(req, res) {
     let currentState = result.cellState;
     let topDownState = trueStates[idx];
     let output = deps.isSameState(topDownState, currentState);
-    res.send({output: output,
+    res.send({
+        output: output,
         state: currentState.toString(),
         trueState: trueStates[idx].toString()
     });
