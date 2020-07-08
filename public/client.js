@@ -168,7 +168,7 @@ function updateExecOrder(idx, version){
     executionLog.push(`${idx}_v${version}`);
     order.innerHTML = 'Execution Order: ' + executionLog.join(', ');
     addButton('reset', 'Reset Execution Order', resetExecutionOrder, 'order-div');
-    addButton('modReset', 'Reset Modifications', resetModifications, 'order-div');
+    addButton('modReset', 'Reset Modifications and Order', resetModifications, 'order-div');
 }
 
 function displayCompareResult(data, cell){
@@ -216,7 +216,7 @@ function resetModifications(){
     fetch('/resetMods', {
         method: 'POST',
     });
-    clearResults();
+    resetExecutionOrder();
 }
 
 function clearResults(){
@@ -253,10 +253,7 @@ function getCellsfromIndex(list){
 
 function clearBox(elementID, text)
 {
-    let newstr = ''
-    if (text !== undefined){
-        newstr = text;
-    }
+    let newstr = text !== undefined ? text : '';
     document.getElementById(elementID).innerHTML = newstr;
 }
 

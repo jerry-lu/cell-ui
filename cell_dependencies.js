@@ -1,6 +1,6 @@
-const utils = require('./cell_utils.js');
+const py = require("../../python-program-analysis");
 const { Cell } = require('./cells.js');
-const { State, CellOutput } = require('./state.js');
+const { State } = require('./state.js');
 
 module.exports = {
     constructCells: function(notebook){
@@ -49,8 +49,10 @@ module.exports = {
         let cells = this.constructCells(notebook);
         if (cells === undefined) return;
 
-        let text = this.convertToPython(cells)
-        let flows = utils.getDefUse(text);
+        let tree = py.parse(this.convertToPython(cells));
+		let cfg = new py.ControlFlowGraph(tree);
+		let analyzer = new py.DataflowAnalyzer();
+		let flows = analyzer.analyze(cfg).dataflows;
 
         for (let flow of flows.items) {
             let defCell;
@@ -67,11 +69,11 @@ module.exports = {
     
             cells.forEach(cell => {
                 if (cell.lineNos !== undefined){
-                    if (utils.isInCellBoundaries(fromNodeLineNo, cell.lineNos)){
+                    if (this.isInCellBoundaries(fromNodeLineNo, cell.lineNos)){
                         defCell = cell;
                         if (def !== undefined){ defCell.addDef(def); }
                     }
-                    if (utils.isInCellBoundaries(toNodeLineNo, cell.lineNos)){
+                    if (this.isInCellBoundaries(toNodeLineNo, cell.lineNos)){
                         useCell = cell;
                         if (use !== undefined){ useCell.addUse(use); }
                     }
@@ -85,16 +87,13 @@ module.exports = {
                 defCell.addDescendant(useCell.idx);
             }
         }
-
-        return {
-            cellList: cells,
-        };
+        return { cellList: cells };
     },
 
     calculateDepsAll: function(cells, idx){
         return {
-            ancestors: utils.cellSetToArray(utils.breadthFirstSearch(cells, idx)),
-            descendants: utils.cellSetToArray(utils.breadthFirstSearch(cells, idx, true))
+            ancestors: this.cellSetToArray(this.breadthFirstSearch(cells, idx)),
+            descendants: this.cellSetToArray(this.breadthFirstSearch(cells, idx, true))
         };
     },
 
@@ -129,5 +128,39 @@ module.exports = {
 
     isSameState: function(x, y){
         return (x.toString() === y.toString());
-    }
+    },
+
+    isInCellBoundaries: function(lineNo, cellLineNos){
+	    let first = cellLineNos[0];
+	    let last = cellLineNos[1];
+	    return (lineNo >= first && lineNo <= last);
+	},
+
+	breadthFirstSearch: function(cells, idx, searchDependents=false){
+		let cell = cells[idx];
+		let visited = new Set();
+		let stack = [cell];
+		let neighbors = [];
+		while (stack.length > 0){
+			let current = stack.pop();
+			visited.add(current);
+			searchDependents ? neighbors = current.descendants : neighbors = current.ancestors;
+			if (neighbors !== undefined){
+				neighbors.forEach(neighbor => {
+					neighbor = cells[neighbor];
+					if (!visited.has(neighbor)){
+						stack.push(neighbor);
+					}
+				});
+			}
+		}
+		visited.delete(cell);
+		return visited;
+	},
+
+	cellSetToArray: function(cells){
+		let array = [];
+		cells.forEach(cell => array.push(parseInt(cell._idx)));
+		return array.sort((a, b) => a - b)
+	}
 }
