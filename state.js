@@ -23,7 +23,7 @@ class State{
 }
 
 class CellOutput {
-    constructor(idx, version, state, defs, uses){
+    constructor(idx, version, state, uses){
         this.idx = idx;
         this.v = version;
         this.argsIn = new State();

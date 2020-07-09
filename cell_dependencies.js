@@ -71,10 +71,7 @@ module.exports = {
         let cells = this.constructCells(notebook);
         if (cells === undefined) return;
 
-
         let text = this.convertToPython(cells);
-        showLineNos(text);
-
         let tree = py.parse(text);
 		let cfg = new py.ControlFlowGraph(tree);
 		let analyzer = new py.DataflowAnalyzer();
@@ -136,9 +133,9 @@ module.exports = {
                 });
             }
 
-            if (py.printNode(flow.fromNode) !== '1, 1'){
+            /*if (py.printNode(flow.fromNode) !== '1, 1'){
                 console.log(py.printNode(flow.fromNode) +  " -> " + py.printNode(flow.toNode));
-            }
+            }*/
 
             if (defCell !== undefined && useCell !== undefined && !useCell.ancestors.includes(defCell.idx)){
                 if (defCell !== useCell || arraysEqual(defNode, useNode)){
@@ -149,7 +146,6 @@ module.exports = {
                 }
             }
         }
-        console.log(JSON.stringify(cells, null, 1));
         return { cellList: cells };
     },
 

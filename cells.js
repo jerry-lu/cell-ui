@@ -28,7 +28,9 @@ class Cell {
             this.defs[def] = [];
         }
         if (typeof term !== 'undefined') {
-            this.defs[def].push(term)
+            if (!this.defs[def].includes(term)){ 
+                this.defs[def].push(term)
+            }
         }
     }
     addUse(u){
@@ -61,19 +63,16 @@ class Cell {
     apply(state){
         let globalState = state;
         let cellState = new State();
-        let output = new CellOutput(this._idx, this.version, state, this.defs, this.uses);
-        if (output.argsIn === undefined){
-            this.defs.forEach(def => {
-                cellState.update(def, 'α_' + this.version);
-            });
-        } else {
-            this.defs.forEach(def => {
-                cellState.update(def, output);
-            });
-        }
-        for (const [key, value] of Object.entries(cellState)) {
-            globalState.update(key, value);
-        }
+        this.defs.forEach(entry => {
+            const def = entry[0];
+            const uses = entry[1];
+            let output = new CellOutput(this._idx, this.version, state, uses);
+            if (output.argsIn === undefined){
+                output = 'α_' + this.version;
+            }
+            cellState.update(def, output);
+            globalState.update(def, output);
+        });
         return {globalState: globalState, cellState: cellState};
     }
 }
