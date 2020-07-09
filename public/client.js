@@ -29,7 +29,7 @@ function readNotebook(event) {
                     clearBox('svg-canvas');
                     clearResults();
                     executionLog = [];
-                    addButton('displayEdges', 'Show dependency visualization', showGraph, 'button-div');
+                    addButton('displayEdges', 'displayButton', 'Show dependency visualization', showGraph, $('button-div'));
                 })
                 .catch(function(error) {
                     console.log(error);
@@ -103,14 +103,14 @@ function runCell(event){
     compareExecOrder(idx, cell);
 }
 
-function addButton(id, innerHTML, func, parent){
-    let button = $(id);
-    if (button === null){
+function addButton(id, cName, innerHTML, func, parent){
+    if ($(id) === null){
         let button = document.createElement('button');
-        button.id = id;
-        button.innerHTML = innerHTML;
-        button.addEventListener('click', func);
-        $(parent).appendChild(button)
+        if (typeof id !== 'undefined') button.id = id;
+        if (typeof cName !== 'undefined') button.className = cName;
+        if (typeof innerHTML !== 'undefined') button.innerHTML = innerHTML;
+        if (typeof func !== 'undefined') button.addEventListener('click', func);
+        if (typeof parent !== 'undefined') parent.appendChild(button)
     }
 }
 
@@ -129,24 +129,15 @@ function displayCells(cells){
         let pre = document.createElement('pre');
 
         let cellBody = document.createElement('code');
-        cellBody.classList.add('cell');
+        cellBody.classList.add('cell', 'unexecuted');
         cellBody.idx = cell._idx;
         cellBody.version = cell.version;
-        cellBody.classList.add('unexecuted');
         cellBody.innerHTML = cell.source.join('');
 
-        let execButton = document.createElement('button');
-        execButton.className = 'cellButton';
-        execButton.innerHTML = cell._idx;
-        execButton.addEventListener('click', runCell);
+        addButton(`runCell${cell._idx}`, 'cellButton', cell._idx, runCell, cellBody);
+        addButton(`modCell${cell._idx}`, 'modButton', 'Δ', modifyCell, cellBody);
+        addButton(undefined, 'toggle', 'show', toggleCellOutput, cellBody)
 
-        let modButton = document.createElement('button');
-        modButton.className = 'modButton';
-        modButton.innerHTML = 'Δ';
-        modButton.addEventListener('click', modifyCell);
-
-        cellBody.appendChild(execButton);
-        cellBody.appendChild(modButton);
         pre.appendChild(cellBody);
         $('cells-div').appendChild(pre);
     }
@@ -154,8 +145,7 @@ function displayCells(cells){
 
 function setValid(cells){
     cells.forEach(element => {
-        element.classList.remove('stale');
-        element.classList.remove('unexecuted');
+        element.classList.remove('stale', 'unexecuted');
     });
 }
 
@@ -167,8 +157,8 @@ function updateExecOrder(idx, version){
     }
     executionLog.push(`${idx}_v${version}`);
     order.innerHTML = 'Execution Order: ' + executionLog.join(', ');
-    addButton('reset', 'Reset Execution Order', resetExecutionOrder, 'order-div');
-    addButton('modReset', 'Reset Modifications and Order', resetModifications, 'order-div');
+    addButton('reset', 'resetButton', 'Reset Execution Order', resetExecutionOrder, $('order-div'));
+    addButton('modReset', 'modResestButton', 'Reset Modifications and Order', resetModifications, $('order-div'));
 }
 
 function displayCompareResult(data, cell){
@@ -180,18 +170,21 @@ function displayCompareResult(data, cell){
         output.id = searchString;
         pre.appendChild(output);
     }
-    output.innerHTML = 'output state:\n' + data.state;
-
+    if (data.state === ''){
+        output.innerHTML = 'output state:\nNone';
+    } else {
+        output.innerHTML = 'output state:\n' + data.state;
+    }
     let trueOutput = document.getElementById('trueOutput' + cell.idx);
     cell.classList.remove('unexecuted');
     cell.classList.remove('stale');
-    if (data.output){
+    if (data.output){ // two states match
         cell.classList.remove('redbox');
         cell.classList.add('greenbox');
         if (trueOutput !== null){
             trueOutput.innerHTML = '';
         }
-    } else {
+    } else { // states do not match
         cell.classList.remove('greenbox');
         cell.classList.add('redbox');
         if (trueOutput === null){
@@ -221,9 +214,7 @@ function resetModifications(){
 
 function clearResults(){
     Array.from(document.getElementsByClassName('cell')).forEach(element =>{
-        element.classList.remove('stale');
-        element.classList.remove('redbox');
-        element.classList.remove('greenbox');
+        element.classList.remove('stale', 'redbox', 'greenbox');
         element.classList.add('unexecuted');
     });
     Array.from(document.getElementsByTagName('output')).forEach(element =>{
@@ -236,8 +227,7 @@ function clearResults(){
 function setInvalid(cells){
     cells.forEach(element => {
         element.classList.add('stale');
-        element.classList.remove('redbox');
-        element.classList.remove('greenbox');
+        element.classList.remove('redbox', 'greenbox');
     });
 }
 
@@ -253,18 +243,31 @@ function getCellsfromIndex(list){
 
 function clearBox(elementID, text)
 {
-    let newstr = text !== undefined ? text : '';
+    let newstr = (typeof text === 'undefined') ? '' : text;
     document.getElementById(elementID).innerHTML = newstr;
 }
 
-function toggleVisibility(id) {
-    var element = $(id);
+function toggleVisibility(element) {
     if (element.style.visibility === 'hidden') {
         element.style.visibility = 'visible';
+        element.style.maxHeight = '';
     } else {
         element.style.visibility = 'hidden';
+        element.style.maxHeight = 0;
     }
 } 
+
+function toggleCellOutput(event) {
+    let parent = event.target.parentElement.parentElement;
+
+    let children = parent.children;
+    for (var i = 0; i < children.length; i++) {
+        let child = children[i];
+        if (child.tagName === 'OUTPUT'){
+            toggleVisibility(child);
+        }
+    }
+}
 
 function $(x) {return document.getElementById(x);} 
 

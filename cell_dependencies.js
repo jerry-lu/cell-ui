@@ -1,6 +1,28 @@
 const py = require("../../python-program-analysis");
-const { Cell } = require('./cells.js');
+const { Cell, Node } = require('./cells.js');
 const { State } = require('./state.js');
+
+function showLineNos(text){
+    let split = text.split('\n');
+    for (const [i, value] of split.entries()) {
+        console.log(`${i+1} ${value}`);
+    }
+}
+
+function checkNodeExists(arr, node) {
+    return arr.find(arrVal => 
+        arrVal[0] === node[0] && arrVal[1] === node[1]);
+}
+
+function arraysEqual(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length !== b.length) return false;  
+    for (var i = 0; i < a.length; ++i) {
+        if (a[i] !== b[i]) return false;
+    }
+    return true;
+}
 
 module.exports = {
     constructCells: function(notebook){
@@ -49,7 +71,11 @@ module.exports = {
         let cells = this.constructCells(notebook);
         if (cells === undefined) return;
 
-        let tree = py.parse(this.convertToPython(cells));
+
+        let text = this.convertToPython(cells);
+        showLineNos(text);
+
+        let tree = py.parse(text);
 		let cfg = new py.ControlFlowGraph(tree);
 		let analyzer = new py.DataflowAnalyzer();
 		let flows = analyzer.analyze(cfg).dataflows;
@@ -59,34 +85,71 @@ module.exports = {
             let useCell;
             let def;
             let use;
-            let fromNodeLineNo = flow.fromNode.location.first_line;
-            let toNodeLineNo = flow.toNode.location.first_line;
+            let fromNodeFirstLine = flow.fromNode.location.first_line;
+            let toNodeFirstLine = flow.toNode.location.first_line;
+            let defNode;
+            let useNode;
 
             if (flow.fromRef !== undefined && flow.toRef !== undefined){
                 def = flow.fromRef.name;
                 use = flow.toRef.name;
             }
     
-            cells.forEach(cell => {
-                if (cell.lineNos !== undefined){
-                    if (this.isInCellBoundaries(fromNodeLineNo, cell.lineNos)){
-                        defCell = cell;
-                        if (def !== undefined){ defCell.addDef(def); }
+            if (typeof def !== 'undefined' && typeof use !== 'undefined'){
+                cells.forEach(cell => {
+                    if (cell.lineNos !== undefined){
+                        if (this.isInCellBoundaries(fromNodeFirstLine, cell.lineNos)){
+                            defCell = cell;
+                            defCell.addDef(def, );
+                            let fromNodeLast = flow.fromNode.location.last_line;
+                            if (fromNodeFirstLine !== fromNodeLast) fromNodeLast -= 1;
+                            let node = [fromNodeFirstLine, fromNodeLast]
+                            let findNode = checkNodeExists(defCell.nodes, node);
+                            if (typeof findNode === 'undefined'){
+                                findNode = node;
+                                defCell.nodes.push(node);
+                            }
+                            defNode = findNode;
+                        }
+                        if (this.isInCellBoundaries(toNodeFirstLine, cell.lineNos)){
+                            useCell = cell;
+                            useCell.addUse(use);
+                            let toNodeLast = flow.toNode.location.last_line;
+                            if (toNodeFirstLine !== toNodeLast) toNodeLast -= 1;
+                            let node = [toNodeFirstLine, toNodeLast]
+                            let findNode = checkNodeExists(useCell.nodes, node);
+                            if (typeof findNode === 'undefined'){
+                                findNode = node;
+                                useCell.nodes.push(node);
+                            }
+                            useNode = findNode;
+                        } 
+                        let targets = flow.toRef.node.targets;
+                        if (typeof targets !== 'undefined'){
+                            const target = targets[0];
+                            let otherLine = target.location.first_line;
+                            if (this.isInCellBoundaries(otherLine, cell.lineNos)){
+                                cell.addDef(target.id, use);
+                            }
+                        }
                     }
-                    if (this.isInCellBoundaries(toNodeLineNo, cell.lineNos)){
-                        useCell = cell;
-                        if (use !== undefined){ useCell.addUse(use); }
-                    }
-                }
-            });
+                });
+            }
 
-            //console.log(py.printNode(flow.fromNode) +  " -> " + py.printNode(flow.toNode))
+            if (py.printNode(flow.fromNode) !== '1, 1'){
+                console.log(py.printNode(flow.fromNode) +  " -> " + py.printNode(flow.toNode));
+            }
 
             if (defCell !== undefined && useCell !== undefined && !useCell.ancestors.includes(defCell.idx)){
-                useCell.addAncestor(defCell.idx);
-                defCell.addDescendant(useCell.idx);
+                if (defCell !== useCell || arraysEqual(defNode, useNode)){
+                    useCell.addAncestor(defCell.idx);
+                    useCell.relations.push({neighbor: defCell.idx, variable: use});
+                    defCell.addDescendant(useCell.idx);
+                    defCell.relations.push({neighbor: useCell.idx, variable: def});
+                }
             }
         }
+        console.log(JSON.stringify(cells, null, 1));
         return { cellList: cells };
     },
 

@@ -1,4 +1,5 @@
 const {CellOutput, State} = require('./state.js');
+
 class Cell {
     constructor(cellJson, idx){
         this.cellType = cellJson.cell_type;
@@ -6,12 +7,14 @@ class Cell {
         this.source = cellJson.source;
         this.ancestors = [];
         this.descendants = [];
-        this.defs = new Set();
+        this.defs = new Object();
         this.uses = new Set();
         this.cellFunc = 'f';
         this.version = 0;
         this.idx = idx;
         this.topDownOutput = undefined;
+        this.relations = [];
+        this.nodes = [];
     }
     addAncestor(a){
         this.ancestors.push(a);
@@ -19,14 +22,20 @@ class Cell {
     addDescendant(d){
         this.descendants.push(d);
     }
-    addDef(d){
-        this.defs.add(d);
+    addDef(def, term){
+        let l = this.defs[def];
+        if (l === undefined){
+            this.defs[def] = [];
+        }
+        if (typeof term !== 'undefined') {
+            this.defs[def].push(term)
+        }
     }
     addUse(u){
         this.uses.add(u);
     }
     convert(){
-        this.defs = [...this.defs];
+        this.defs = Object.entries(this.defs);
         this.uses = [...this.uses];
     }
     get topDownOutput(){
@@ -40,12 +49,6 @@ class Cell {
     }
     set idx(idx){
         this._idx = idx;
-    }
-    set currentInput(input){
-        this._currentInput = input;
-    }
-    get currentInput(){
-        return this._currentInput
     }
 
     nextCellFunc(){
@@ -75,4 +78,11 @@ class Cell {
     }
 }
 
-module.exports = { Cell };
+class Node {
+    constructor(firstLine, lastLine){
+        this.first = firstLine;
+        this.last = lastLine;
+    }
+}
+
+module.exports = { Cell, Node };

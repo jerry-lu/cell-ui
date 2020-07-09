@@ -23,12 +23,13 @@
 output {
     display: inline-block;
     vertical-align: top;
-    padding: 10px;
+    padding: 5px 10px 5px 10px;
     white-space: pre;
 }
 
 pre {
     margin-left: 50px;
+    margin-right: 80px;
 }
 
 code{
@@ -60,6 +61,12 @@ button {
     position: absolute;
     top: 25px;
     left: -50px;
+}
+
+.toggle {
+    position: absolute;
+    top: 0px;
+    right: -70px;
 }
 
 button:hover{
