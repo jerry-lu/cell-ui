@@ -24,15 +24,19 @@ function arraysEqual(a, b) {
     return true;
 }
 
+function isInBoundaries(lineNo, cellLineNos){
+    let first = cellLineNos[0];
+    let last = cellLineNos[1];
+    return (lineNo >= first && lineNo <= last);
+}
+
 module.exports = {
     constructCells: function(notebook){
         const notebookJson = JSON.parse(notebook);
-
         if (notebookJson.nbformat < 4){
             console.log(`Error: ${notebook} Notebook version out of date`);
             return;
         }
-
         let cells = [];
         let count = 0;
         notebookJson.cells.forEach(element => {
@@ -47,7 +51,6 @@ module.exports = {
     convertToPython: function(cells){
         let text = "while(True):";
         let currentLine = 2;
-
         for (let cell of cells){
             var sourceCode = "\n\tif (True):\n";
             for (let line of cell.source) {
@@ -72,35 +75,32 @@ module.exports = {
         if (cells === undefined) return;
 
         let text = this.convertToPython(cells);
+        showLineNos(text);
         let tree = py.parse(text);
 		let cfg = new py.ControlFlowGraph(tree);
 		let analyzer = new py.DataflowAnalyzer();
 		let flows = analyzer.analyze(cfg).dataflows;
-
-        for (let flow of flows.items) {
-            let defCell;
-            let useCell;
-            let def;
-            let use;
+        let items = flows.items;
+        for (let flow of items) {
             let fromNodeFirstLine = flow.fromNode.location.first_line;
             let toNodeFirstLine = flow.toNode.location.first_line;
+            let defCell;
+            let useCell;
+            let name;
             let defNode;
             let useNode;
 
             if (flow.fromRef !== undefined && flow.toRef !== undefined){
-                def = flow.fromRef.name;
-                use = flow.toRef.name;
-            }
-    
-            if (typeof def !== 'undefined' && typeof use !== 'undefined'){
+                name = flow.fromRef.name;
+
                 cells.forEach(cell => {
                     if (cell.lineNos !== undefined){
-                        if (this.isInCellBoundaries(fromNodeFirstLine, cell.lineNos)){
+                        if (isInBoundaries(fromNodeFirstLine, cell.lineNos)){
                             defCell = cell;
-                            defCell.addDef(def, );
+                            defCell.addDef(name, undefined, fromNodeFirstLine);
                             let fromNodeLast = flow.fromNode.location.last_line;
                             if (fromNodeFirstLine !== fromNodeLast) fromNodeLast -= 1;
-                            let node = [fromNodeFirstLine, fromNodeLast]
+                            let node = [fromNodeFirstLine, fromNodeLast, name];
                             let findNode = checkNodeExists(defCell.nodes, node);
                             if (typeof findNode === 'undefined'){
                                 findNode = node;
@@ -108,44 +108,48 @@ module.exports = {
                             }
                             defNode = findNode;
                         }
-                        if (this.isInCellBoundaries(toNodeFirstLine, cell.lineNos)){
+                        if (isInBoundaries(toNodeFirstLine, cell.lineNos)){
                             useCell = cell;
-                            useCell.addUse(use);
+                            useCell.addUse(name);
                             let toNodeLast = flow.toNode.location.last_line;
                             if (toNodeFirstLine !== toNodeLast) toNodeLast -= 1;
-                            let node = [toNodeFirstLine, toNodeLast]
+                            let node = [toNodeFirstLine, toNodeLast];
                             let findNode = checkNodeExists(useCell.nodes, node);
                             if (typeof findNode === 'undefined'){
                                 findNode = node;
-                                useCell.nodes.push(node);
+                                //useCell.nodes.push(node);
                             }
                             useNode = findNode;
-                        } 
-                        let targets = flow.toRef.node.targets;
-                        if (typeof targets !== 'undefined'){
-                            const target = targets[0];
-                            let otherLine = target.location.first_line;
-                            if (this.isInCellBoundaries(otherLine, cell.lineNos)){
-                                cell.addDef(target.id, use);
-                            }
                         }
                     }
                 });
             }
-
             /*if (py.printNode(flow.fromNode) !== '1, 1'){
                 console.log(py.printNode(flow.fromNode) +  " -> " + py.printNode(flow.toNode));
             }*/
-
             if (defCell !== undefined && useCell !== undefined && !useCell.ancestors.includes(defCell.idx)){
                 if (defCell !== useCell || arraysEqual(defNode, useNode)){
                     useCell.addAncestor(defCell.idx);
-                    useCell.relations.push({neighbor: defCell.idx, variable: use});
+                    useCell.relations.push({neighbor: defCell.idx, variable: name});
                     defCell.addDescendant(useCell.idx);
-                    defCell.relations.push({neighbor: useCell.idx, variable: def});
+                    defCell.relations.push({neighbor: useCell.idx, variable: name});
                 }
             }
         }
+
+        items.forEach(flow =>{
+            if (flow.fromRef !== undefined && flow.toRef !== undefined){
+                let useLoc = flow.toRef.location.first_line;
+                name = flow.fromRef.name;
+                cells.forEach(cell => {
+                    cell.nodes.forEach(node =>{
+                        if (isInBoundaries(useLoc, node)){
+                            cell.addDef(node[2], name, useLoc);
+                        }
+                    });
+                });
+            }
+        });
         return { cellList: cells };
     },
 
@@ -168,9 +172,7 @@ module.exports = {
     // everything that was run previously in the sequence
     // idx is the index of the cell that is currently being run
     simulateExecutionOrder: function(cell, globalState){
-        if (globalState === undefined){
-            globalState = new State();
-        }
+        if (globalState === undefined) globalState = new State();
         return cell.apply(globalState);
     },
 
@@ -189,15 +191,9 @@ module.exports = {
         return (x.toString() === y.toString());
     },
 
-    isInCellBoundaries: function(lineNo, cellLineNos){
-	    let first = cellLineNos[0];
-	    let last = cellLineNos[1];
-	    return (lineNo >= first && lineNo <= last);
-	},
-
 	breadthFirstSearch: function(cells, idx, searchDependents=false){
-		let cell = cells[idx];
-		let visited = new Set();
+        let cell = cells[idx];
+        let visited = new Set();
 		let stack = [cell];
 		let neighbors = [];
 		while (stack.length > 0){

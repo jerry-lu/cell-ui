@@ -8,7 +8,7 @@ class Cell {
         this.ancestors = [];
         this.descendants = [];
         this.defs = new Object();
-        this.uses = new Set();
+        this.uses = [];
         this.cellFunc = 'f';
         this.version = 0;
         this.idx = idx;
@@ -22,19 +22,22 @@ class Cell {
     addDescendant(d){
         this.descendants.push(d);
     }
-    addDef(def, term){
-        let l = this.defs[def];
-        if (l === undefined){
-            this.defs[def] = [];
+    addDef(def, term, lineNo){
+        if (this.defs[def] === undefined){
+            this.defs[def] = {terms: [], lineNo: undefined};
         }
+        let l = this.defs[def];
         if (typeof term !== 'undefined') {
-            if (!this.defs[def].includes(term)){ 
-                this.defs[def].push(term)
+            if (!l.terms.includes(term)){ 
+                l.terms.push(term)
             }
+        }
+        if (typeof lineNo !== 'undefined'){
+            l.lineNo = lineNo;
         }
     }
     addUse(u){
-        this.uses.add(u);
+        if (!this.uses.includes(u)) this.uses.push(u);
     }
     convert(){
         this.defs = Object.entries(this.defs);
@@ -63,9 +66,12 @@ class Cell {
     apply(state){
         let globalState = state;
         let cellState = new State();
-        this.defs.forEach(entry => {
+        //console.log(JSON.stringify(Object.entries(this.defs), null, 1));
+        let entries = Object.entries(this.defs);
+        entries.sort((a,b) => (a[1].lineNo > b[1].lineNo) ? 1 : ((b[1].lineNo > a[1].lineNo) ? -1 : 0)); 
+        entries.forEach(entry => {
             const def = entry[0];
-            const uses = entry[1];
+            let uses = entry[1].terms;
             let output = new CellOutput(this._idx, this.version, state, uses);
             if (output.argsIn === undefined){
                 output = 'α_' + this.version;

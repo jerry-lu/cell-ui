@@ -31,11 +31,13 @@ class CellOutput {
         if (uses.length == 0){
             this.argsIn = undefined;
         } else {
-            for (const [key, value] of Object.entries(state)) {
-                if (uses.includes(key)){
-                    this.argsIn.update(key, value);
+            uses.forEach( use => {
+                if (typeof state[use] !== 'undefined'){
+                    this.argsIn.update(use, state[use]);
+                } else {
+                    this.argsIn.update(use, 'None');
                 }
-            }
+            });
         }
     }
     toString(tabLevel){

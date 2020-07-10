@@ -17,7 +17,7 @@
 
 .stale {
     color: gray;
-    border: 2px solid gray;
+    border: 2px solid #facc05;
 }
 
 output {

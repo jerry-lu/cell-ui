@@ -281,7 +281,10 @@ function createGraph(flows, labelEdges=true){
         .setDefaultEdgeLabel(function() { return {}; });
 
     flows.forEach(flow =>{
-        let defs = cells[flow.from].defs;
+        let defs = []
+        Object.entries(cells[flow.from].defs).forEach(entry => {
+            defs.push(entry[0]);
+        });
         let uses = cells[flow.to].uses;
         g.setNode(flow.from, {label: String(flow.from)});
         g.setNode(flow.to, {label: String(flow.to)});

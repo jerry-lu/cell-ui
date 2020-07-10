@@ -36,10 +36,11 @@ app.post('/input', function(req, res){
     let notebook = req.body.notebook;
     let output = deps.calculateDefUse(notebook);
     cells = output.cellList;
-    cells.forEach(cell =>{
-        cell.convert();
-    });
     trueStates = deps.simulateTopDown(cells);
+    cells.forEach(cell =>{
+        console.log(cell.source);
+        console.log(cell.nodes);
+    });
     globalState = new State();
     res.send(output);
 });
