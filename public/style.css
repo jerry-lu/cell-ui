@@ -20,6 +20,10 @@
     border: 2px solid #facc05;
 }
 
+#order-div {
+    margin-top: 40px;
+}
+
 output {
     display: inline-block;
     vertical-align: top;
@@ -28,8 +32,7 @@ output {
 }
 
 pre {
-    margin-left: 50px;
-    margin-right: 80px;
+    margin: 15px 80px 0px 50px;
 }
 
 code{

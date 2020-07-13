@@ -12,7 +12,6 @@ class Cell {
         this.cellFunc = 'f';
         this.version = 0;
         this.idx = idx;
-        this.topDownOutput = undefined;
         this.relations = [];
         this.nodes = [];
     }
@@ -43,19 +42,12 @@ class Cell {
         this.defs = Object.entries(this.defs);
         this.uses = [...this.uses];
     }
-    get topDownOutput(){
-        return this._topDownOutput;
-    }
-    set topDownOutput(topDownOutput){
-        this._topDownOutput = topDownOutput;
-    }
     get idx(){
         return this._idx;
     }
     set idx(idx){
         this._idx = idx;
     }
-
     nextCellFunc(){
         let code = this.cellFunc.charCodeAt();
         this.cellFunc = String.fromCharCode(code + 1);

@@ -30,17 +30,13 @@ app.get('/', (req, res) => {
 
 let cells = [];
 let trueStates = [];
-let globalState = new State();
+let globalState;
 
 app.post('/input', function(req, res){
     let notebook = req.body.notebook;
     let output = deps.calculateDefUse(notebook);
     cells = output.cellList;
     trueStates = deps.simulateTopDown(cells);
-    cells.forEach(cell =>{
-        console.log(cell.source);
-        console.log(cell.nodes);
-    });
     globalState = new State();
     res.send(output);
 });
