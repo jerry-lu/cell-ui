@@ -31,6 +31,7 @@ app.get('/', (req, res) => {
 let cells = [];
 let trueStates = [];
 let globalState;
+let mostRecent = new Map();
 
 app.post('/input', function(req, res){
     let notebook = req.body.notebook;
@@ -76,12 +77,21 @@ app.get('/edges', function(req, res){
 app.post('/compare', function(req, res) {
     let idx = req.body.index;
     let result = deps.simulateExecutionOrder(cells[idx], globalState);
-    globalState = result.globalState;
+    Object.entries(result.cellState).forEach(entry => {
+        globalState.update(entry[0], entry[1]);
+        mostRecent.set(entry[0], idx);
+    });
+    let blameCells = new Set();
     let currentState = result.cellState;
     let topDownState = trueStates[idx];
     let output = deps.isSameState(topDownState, currentState);
+    output.unequal.forEach(variable => {
+        blameCells.add(mostRecent.get(variable));
+    })
     res.send({
-        output: output,
+        output: output.bool,
+        unequal: output.unequal,
+        mostRecent: [...blameCells],
         state: currentState.toString(),
         trueState: trueStates[idx].toString()
     });

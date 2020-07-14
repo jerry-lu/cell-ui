@@ -188,7 +188,19 @@ module.exports = {
     },
 
     isSameState: function(x, y){
-        return (x.toString() === y.toString());
+        let unequal = [];
+        Object.entries(x).forEach(entry => {
+            const def = entry[0];
+            let uses = entry[1];
+            let other = y[def];
+            if(uses.toString() !== other.toString()){
+                unequal.push(def);
+            }
+        });
+        return {
+            bool: unequal.length == 0, 
+            unequal: unequal
+        };
     },
 
 	breadthFirstSearch: function(cells, idx, searchDependents=false){

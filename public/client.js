@@ -186,6 +186,7 @@ function displayCompareResult(data, cell){
         cell.classList.remove('greenbox');
         cell.classList.add('redbox');
         trueOutput.innerHTML = 'top-down state:\n' + data.trueState;
+        trueOutput.innerHTML += `\nVariables ${data.unequal} do not match top-down, most recently modified in cell ${data.mostRecent}`;
     }
 }
 
