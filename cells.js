@@ -66,7 +66,7 @@ class Cell {
             let uses = entry[1].terms;
             let output = new CellOutput(this._idx, this.version, state, uses);
             if (output.argsIn === undefined){
-                output = 'α_' + this.version;
+                output = `α${this._idx}_${this.version}`;
             }
             cellState.update(def, output);
             globalState.update(def, output);

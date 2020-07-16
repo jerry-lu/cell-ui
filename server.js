@@ -60,20 +60,6 @@ app.post('/modify', function(req, res){
     });
 });
 
-app.get('/edges', function(req, res){
-    if (cells === undefined || cells.length < 1){
-        res.status(400).send(new Error('no notebook uploaded yet'));
-    }
-    let arr = [];
-    cells.forEach(cell => {
-        let from = cell._idx;
-        cell.descendants.forEach(to =>{
-            arr.push({from: from, to: to});
-        });
-    });
-    res.send(arr);
-});
-
 app.post('/compare', function(req, res) {
     let idx = req.body.index;
     let result = deps.simulateExecutionOrder(cells[idx], globalState);
@@ -87,7 +73,7 @@ app.post('/compare', function(req, res) {
     let output = deps.isSameState(topDownState, currentState);
     output.unequal.forEach(variable => {
         blameCells.add(mostRecent.get(variable));
-    })
+    });
     res.send({
         output: output.bool,
         unequal: output.unequal,

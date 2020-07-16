@@ -6,11 +6,12 @@ const header = {
 let executionLog = []
 let cells;
 
-$("input-file").addEventListener('change', readNotebook);
+$("input-file").addEventListener('input', readNotebook);
 
 function readNotebook(event) {
     const input = event.target;
     let file = input.files[0];
+    resetModifications();
     readFileContent(file)
         .then(function(result){
             fetch('/input', {
@@ -23,13 +24,12 @@ function readNotebook(event) {
                     throw new Error('Request failed');
                 })
                 .then(function(data) {
+                    clearBox('order', 'Execution Order:');
+                    clearBox('svg-canvas');                
                     cells = data.cellList;
                     displayCells(cells);
-                    clearBox('order', 'Execution Order:');
-                    clearBox('svg-canvas');
-                    clearResults();
-                    executionLog = [];
-                    addElement('button', 'displayEdges', 'displayButton', 'Show dependency visualization', showGraph, $('button-div'));
+                    addElement('button', 'displayEdges', 'displayButton',
+                        'Show dependency visualization', createGraph, $('button-div'));
                 })
                 .catch(function(error) {
                     console.log(error);
@@ -81,20 +81,6 @@ function compareExecOrder(idx, cell){
         });
 }
 
-function showGraph(){
-    fetch('/edges', {method: 'GET'})
-        .then(function(response) {
-            if(response.ok) return response.json();
-            throw new Error('Request failed');
-        })
-        .then(function(data) {
-            createGraph(data);
-        })
-        .catch(function(error) {
-            console.log(error);
-        });
-}
-
 function runCell(event){
     let cell = event.target.parentElement;
     let idx = cell.idx;
@@ -139,6 +125,10 @@ function displayCells(cells){
         addElement('button', `runCell${cell._idx}`, 'cellButton', cell._idx, runCell, cellBody);
         addElement('button', `modCell${cell._idx}`, 'modButton', 'Δ', modifyCell, cellBody);
     }
+    addElement('button', 'reset', 'resetButton', 'Reset Execution Order',
+        resetExecutionOrder, $('order-div'));
+    addElement('button', 'modReset', 'modResestButton', 
+        'Reset Modifications and Order', resetModifications, $('order-div'));
 }
 
 function setValid(cells){
@@ -154,8 +144,6 @@ function updateExecOrder(idx, version){
     }
     executionLog.push(`${idx}_v${version}`);
     order.innerHTML = 'Execution Order: ' + executionLog.join(', ');
-    addElement('button', 'reset', 'resetButton', 'Reset Execution Order', resetExecutionOrder, $('order-div'));
-    addElement('button', 'modReset', 'modResestButton', 'Reset Modifications and Order', resetModifications, $('order-div'));
 }
 
 function displayCompareResult(data, cell){
@@ -169,7 +157,9 @@ function displayCompareResult(data, cell){
     for (let i = 0; i < children.length; i++) {
         const child = children[i];
         if (child.tagName === 'CODE'){
-            addElement('button', undefined, 'toggle', 'hide', toggleCellOutput, child);
+            if ($(`toggle${cell.idx}`) === null) {
+                addElement('button', `toggle${cell.idx}`, 'toggle', 'hide', toggleCellOutput, child);
+            }
         }
     }
     output.innerHTML = (data.state === '') ? 'output state:\nNone' : 'output state:\n' + data.state;
@@ -186,7 +176,8 @@ function displayCompareResult(data, cell){
         cell.classList.remove('greenbox');
         cell.classList.add('redbox');
         trueOutput.innerHTML = 'top-down state:\n' + data.trueState;
-        trueOutput.innerHTML += `\nVariables ${data.unequal} do not match top-down, most recently modified in cell ${data.mostRecent}`;
+        trueOutput.innerHTML += `\nVariables ${data.unequal} do not match top-down, `
+            + `most recently modified in cell ${data.mostRecent}`;
     }
 }
 
@@ -274,12 +265,20 @@ function intersection(arr1, arr2){
     return arr1.filter(x => arr2.includes(x));
 }
 
-function createGraph(flows, labelEdges=true){
+function createGraph(labelEdges=true){
     let g = new dagreD3.graphlib.Graph()
         .setGraph({})
         .setDefaultEdgeLabel(function() { return {}; });
 
-    flows.forEach(flow =>{
+    let arr = [];
+    cells.forEach(cell => {
+        let from = cell._idx;
+        cell.descendants.forEach(to =>{
+            arr.push({from: from, to: to});
+        });
+    });
+    
+    arr.forEach(flow =>{
         let defs = []
         Object.entries(cells[flow.from].defs).forEach(entry => {
             defs.push(entry[0]);
@@ -323,6 +322,7 @@ function createGraph(flows, labelEdges=true){
     svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
 
     var initialScale = 0.9;
-    svg.call(zoom.transform, d3.zoomIdentity.translate((svg.attr("width") - g.graph().width * initialScale) / 2, 20).scale(initialScale));
+    svg.call(zoom.transform, d3.zoomIdentity.translate((svg.attr("width")
+        - g.graph().width * initialScale) / 2, 20).scale(initialScale));
     svg.attr('height', g.graph().height * initialScale + 40);
 }
