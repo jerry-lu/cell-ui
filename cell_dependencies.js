@@ -1,4 +1,4 @@
-const py = require("../../python-program-analysis");
+const py = require('@andrewhead/python-program-analysis');
 const { Cell, Node } = require('./cells.js');
 const { State } = require('./state.js');
 
@@ -75,7 +75,6 @@ module.exports = {
         if (cells === undefined) return;
 
         let text = this.convertToPython(cells);
-        showLineNos(text);
         let tree = py.parse(text);
 		let cfg = new py.ControlFlowGraph(tree);
 		let analyzer = new py.DataflowAnalyzer();
