@@ -11,13 +11,23 @@
     border: 2px solid green;
 }
 
+.modified {
+    border: 2px solid #187bcd;
+}
+
 .unexecuted {
+    border: 2px solid black;
     color: gray;
 }
 
 .stale {
-    color: gray;
     border: 2px solid #facc05;
+}
+
+.key {
+    padding: 5px;
+    margin: 6px;
+    font-size: 14px;
 }
 
 #order-div {

@@ -1,8 +1,4 @@
-const header = {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
-}
-
+const header = { 'Accept': 'application/json', 'Content-Type': 'application/json' }
 let executionLog = []
 let cells;
 
@@ -13,7 +9,7 @@ function readNotebook(event) {
     let file = input.files[0];
     resetModifications();
     readFileContent(file)
-        .then(function(result){
+        .then(function(result) {
             fetch('/input', {
                 method: 'POST',
                 headers: header,
@@ -37,7 +33,7 @@ function readNotebook(event) {
         });
 }
 
-function modifyCell(event){
+function modifyCell(event) {
     let cell = event.target.parentElement;
     let idx = cell.idx;
     fetch('/modify', {
@@ -52,16 +48,16 @@ function modifyCell(event){
         .then(function(data) {
             let invalidCells = getCellsfromIndex(data.invalidCells);
             cell.version = data.version;
-            setInvalid(invalidCells);
-            setValid([cell]);
-            runCell(event);
+            cell.invalid = invalidCells;
+            cell.classList.add('modified');
+            cell.classList.remove('stale', 'unexecuted');
         })
         .catch(function(error) {
             console.log(error);
         });
 }
 
-function compareExecOrder(idx, cell){
+function compareExecOrder(idx, cell) {
     fetch('/compare', {
         method: 'POST',
         headers: header,
@@ -81,15 +77,20 @@ function compareExecOrder(idx, cell){
         });
 }
 
-function runCell(event){
+function runCell(event) {
     let cell = event.target.parentElement;
     let idx = cell.idx;
     let version = cell.version;
+    if (typeof cell.invalid !== 'undefined'){
+        setInvalid(cell.invalid);
+        cell.invalidCells = undefined;
+        cell.classList.remove('stale', 'unexecuted', 'modified');
+    }
     updateExecOrder(idx, version);
     compareExecOrder(idx, cell);
 }
 
-function addElement(tag, id, cName, innerHTML, func, parent){
+function addElement(tag, id, cName, innerHTML, func, parent) {
     let element = $(id);
     if (element === null){
         let eltTag = (typeof tag === 'undefined') ? 'div' : tag;
@@ -106,13 +107,13 @@ function addElement(tag, id, cName, innerHTML, func, parent){
 function readFileContent(file) {
 	const reader = new FileReader();
     return new Promise((resolve, reject) => {
-    reader.onload = event => resolve(event.target.result)
-    reader.onerror = error => reject(error)
-    reader.readAsText(file)
+        reader.onload = event => resolve(event.target.result)
+        reader.onerror = error => reject(error)
+        reader.readAsText(file)
     });
 }
 
-function displayCells(cells){
+function displayCells(cells) {
     clearBox('cells-div');
     for (let cell of cells){
         let pre = document.createElement('pre');
@@ -131,22 +132,16 @@ function displayCells(cells){
         'Reset Modifications and Order', resetModifications, $('order-div'));
 }
 
-function setValid(cells){
-    cells.forEach(element => {
-        element.classList.remove('stale', 'unexecuted');
-    });
-}
-
-function updateExecOrder(idx, version){
+function updateExecOrder(idx, version) {
     let order = $('order');
     if (order === null){
         addElement('h4', 'order', undefined, '', undefined, $('order-div'));
     }
-    executionLog.push(`${idx}_v${version}`);
+    executionLog.push(`${idx}.${version}`);
     order.innerHTML = 'Execution Order: ' + executionLog.join(', ');
 }
 
-function displayCompareResult(data, cell){
+function displayCompareResult(data, cell) {
     let pre = cell.parentElement;
     const searchString = 'outputJson' + cell.idx;
     let output = document.getElementById(searchString);
@@ -181,19 +176,19 @@ function displayCompareResult(data, cell){
     }
 }
 
-function resetExecutionOrder(){
+function resetExecutionOrder() {
     fetch('/reset', {method: 'POST'});
     executionLog = [];
     $('order').innerHTML = 'Execution Order:';
     clearResults();
 }
 
-function resetModifications(){
+function resetModifications() {
     fetch('/resetMods', {method: 'POST'});
     resetExecutionOrder();
 }
 
-function clearResults(){
+function clearResults() {
     Array.from(document.getElementsByClassName('cell')).forEach(element =>{
         element.classList.remove('stale', 'redbox', 'greenbox');
         element.classList.add('unexecuted');
@@ -208,16 +203,15 @@ function clearResults(){
     });
 }
 
-// indicate which cells are 'invalid'. Cells are invalid
-// if a parent cell was modified.
-function setInvalid(cells){
+// indicate 'invalid' cells. Cells are invalid if a parent cell was modified.
+function setInvalid(cells) {
     cells.forEach(element => {
         element.classList.add('stale');
         element.classList.remove('redbox', 'greenbox');
     });
 }
 
-function getCellsfromIndex(list){
+function getCellsfromIndex(list) {
     let cells = [];
     Array.from(document.getElementsByClassName('cell')).forEach(element =>{
         if (list.includes(element.idx)) cells.push(element);
@@ -225,8 +219,7 @@ function getCellsfromIndex(list){
     return cells;
 }
 
-function clearBox(elementID, text)
-{
+function clearBox(elementID, text) {
     let newstr = (typeof text === 'undefined') ? '' : text;
     document.getElementById(elementID).innerHTML = newstr;
 }
@@ -261,11 +254,11 @@ function toggleCellOutput(event) {
 
 function $(x) {return document.getElementById(x);} 
 
-function intersection(arr1, arr2){
+function intersection(arr1, arr2) {
     return arr1.filter(x => arr2.includes(x));
 }
 
-function createGraph(labelEdges=true){
+function createGraph(labelEdges=true) {
     let g = new dagreD3.graphlib.Graph()
         .setGraph({})
         .setDefaultEdgeLabel(function() { return {}; });

@@ -1,7 +1,8 @@
 const py = require('@andrewhead/python-program-analysis');
-const { Cell, Node } = require('./cells.js');
+const { Cell } = require('./cells.js');
 const { State } = require('./state.js');
 
+// print processed code with line nums for debugging
 function showLineNos(text){
     let split = text.split('\n');
     for (const [i, value] of split.entries()) {
@@ -28,6 +29,26 @@ function isInBoundaries(lineNo, cellLineNos){
     let first = cellLineNos[0];
     let last = cellLineNos[1];
     return (lineNo >= first && lineNo <= last);
+}
+
+function breadthFirstSearch(cells, idx, searchDependents=false){
+    let cell = cells[idx];
+    let visited = new Set();
+    let stack = [cell];
+    let neighbors = [];
+    while (stack.length > 0){
+        let current = stack.pop();
+        visited.add(current);
+        searchDependents ? neighbors = current.descendants : neighbors = current.ancestors;
+        if (neighbors !== undefined){
+            neighbors.forEach(neighbor => {
+                neighbor = cells[neighbor];
+                if (!visited.has(neighbor)) stack.push(neighbor);
+            });
+        }
+    }
+    visited.delete(cell);
+    return visited;
 }
 
 module.exports = {
@@ -76,7 +97,7 @@ module.exports = {
 
         let text = this.convertToPython(cells);
         let tree = py.parse(text);
-		let cfg = new py.ControlFlowGraph(tree);
+        let cfg = new py.ControlFlowGraph(tree);
 		let analyzer = new py.DataflowAnalyzer();
 		let flows = analyzer.analyze(cfg).dataflows;
         let items = flows.items;
@@ -91,7 +112,6 @@ module.exports = {
 
             if (flow.fromRef !== undefined && flow.toRef !== undefined){
                 name = flow.fromRef.name;
-
                 cells.forEach(cell => {
                     if (cell.lineNos !== undefined){
                         if (isInBoundaries(fromNodeFirstLine, cell.lineNos)){
@@ -154,8 +174,8 @@ module.exports = {
 
     calculateDepsAll: function(cells, idx){
         return {
-            ancestors: this.cellSetToArray(this.breadthFirstSearch(cells, idx)),
-            descendants: this.cellSetToArray(this.breadthFirstSearch(cells, idx, true))
+            ancestors: this.cellSetToArray(breadthFirstSearch(cells, idx)),
+            descendants: this.cellSetToArray(breadthFirstSearch(cells, idx, true))
         };
     },
 
@@ -169,7 +189,7 @@ module.exports = {
     // cells is a list of cell objects
     // globalState is passed from server.js so we don't have to recalculate
     // everything that was run previously in the sequence
-    // idx is the index of the cell that is currently being run
+    // idx is the index of the cell that is being run
     simulateExecutionOrder: function(cell, globalState){
         if (globalState === undefined) globalState = new State();
         return cell.apply(globalState);
@@ -201,28 +221,6 @@ module.exports = {
             unequal: unequal
         };
     },
-
-	breadthFirstSearch: function(cells, idx, searchDependents=false){
-        let cell = cells[idx];
-        let visited = new Set();
-		let stack = [cell];
-		let neighbors = [];
-		while (stack.length > 0){
-			let current = stack.pop();
-			visited.add(current);
-			searchDependents ? neighbors = current.descendants : neighbors = current.ancestors;
-			if (neighbors !== undefined){
-				neighbors.forEach(neighbor => {
-					neighbor = cells[neighbor];
-					if (!visited.has(neighbor)){
-						stack.push(neighbor);
-					}
-				});
-			}
-		}
-		visited.delete(cell);
-		return visited;
-	},
 
 	cellSetToArray: function(cells){
 		let array = [];
