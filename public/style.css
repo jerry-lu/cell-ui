@@ -1,33 +1,34 @@
-.cell {
-    border: 2px solid #000;
+.cell, .key {
+    border: 2px solid;
+    border-color: black;
     position: relative;
-}
-
-.redbox {
-    border: 2px solid red;
-}
-
-.greenbox {
-    border: 2px solid green;
-}
-
-.modified {
-    border: 2px solid #187bcd;
-}
-
-.unexecuted {
-    border: 2px solid black;
-    color: gray;
-}
-
-.stale {
-    border: 2px solid #facc05;
 }
 
 .key {
     padding: 5px;
     margin: 6px;
     font-size: 14px;
+}
+
+.redbox {
+    border-color: red;
+}
+
+.greenbox {
+    border-color: green;
+}
+
+.modified {
+    border-color: #187bcd;
+}
+
+.stale {
+    border-color: #facc05;
+}
+
+.unexecuted {
+    border-color: black;
+    color: gray;
 }
 
 #order-div {
@@ -64,20 +65,21 @@ button {
     border: 1px black;
 }
 
-.cellButton {
+.cellButton, .modButton, .toggle {
     position: absolute;
+}
+
+.cellButton {
     top: 0px;
     left: -50px;
 }
 
 .modButton {
-    position: absolute;
     top: 25px;
     left: -50px;
 }
 
 .toggle {
-    position: absolute;
     top: 0px;
     right: -70px;
 }
