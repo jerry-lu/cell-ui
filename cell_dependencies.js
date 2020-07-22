@@ -1,4 +1,4 @@
-const py = require('@andrewhead/python-program-analysis');
+const py = require('../../python-program-analysis');
 const { Cell } = require('./cells.js');
 const { State } = require('./state.js');
 
@@ -75,7 +75,7 @@ module.exports = {
         for (let cell of cells){
             var sourceCode = "\n\tif (True):\n";
             for (let line of cell.source) {
-                if (line[0] == '%' || line[0] == '!') {
+                if (line[0] == '%' || line[0] == '!' || line[0] == '#') {
                     if (cell.source.length === 1){ line = 'print(\'filler text\')'; }
                     else { line = "#" + line; }
                 }
@@ -207,18 +207,34 @@ module.exports = {
     },
 
     isSameState: function(x, y){
-        let unequal = [];
+        let unequal = new Set();
         Object.entries(x).forEach(entry => {
             const def = entry[0];
-            let uses = entry[1];
-            let other = y[def];
+            const uses = entry[1];
+            const other = y[def];
             if(uses.toString() !== other.toString()){
-                unequal.push(def);
+                // if the variable is defined in terms of other variables,
+                // we want to go down one layer to see which inputs
+                // do not match the inputs from the top-down order
+                if (typeof uses === 'object'){
+                    let a = uses.argsIn;
+                    let b = other.argsIn;
+                    Object.entries(a).forEach(entry => {
+                        let aDef = entry[0];
+                        let aUses = entry[1]
+                        let bUses = b[aDef];
+                        if (aUses.toString() !== bUses.toString()){
+                            unequal.add(aDef);
+                        }
+                    });
+                } else {
+                    unequal.add(def);
+                }
             }
         });
         return {
-            bool: unequal.length == 0, 
-            unequal: unequal
+            bool: unequal.size == 0, 
+            unequal: [...unequal]
         };
     },
 
