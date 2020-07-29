@@ -12,7 +12,7 @@ function showLineNos(text){
 
 function checkNodeExists(arr, node) {
     return arr.find(arrVal => 
-        arrVal[0] === node[0] && arrVal[1] === node[1]);
+        arrVal[0] === node[0] && arrVal[1] === node[1] && arrVal[2] == node[2]);
 }
 
 function arraysEqual(a, b) {
@@ -51,29 +51,34 @@ function breadthFirstSearch(cells, idx, searchDependents=false){
     return visited;
 }
 
-module.exports = {
-    constructCells: function(notebook){
-        const notebookJson = JSON.parse(notebook);
-        if (notebookJson.nbformat < 4){
-            console.log(`Error: ${notebook} Notebook version out of date`);
-            return;
+function constructCells(notebook, isJSON){
+    const notebookJson = isJSON ? notebook : JSON.parse(notebook);
+    if (notebookJson.nbformat < 4){
+        console.log(`Error: ${notebook} Notebook version out of date`);
+        return;
+    }
+    let cells = [];
+    let count = 0;
+    for (const element of notebookJson.cells){
+        if (element.cell_type === 'code'){
+            let cell = new Cell(element, count++);
+            cells.push(cell);
         }
-        let cells = [];
-        let count = 0;
-        notebookJson.cells.forEach(element => {
-            if (element.cell_type === 'code'){
-                let cell = new Cell(element, count++);
-                cells.push(cell);
-            }
-        });
-        return cells;
-    }, 
+    }
+    return cells;
+}
 
-    convertToPython: function(cells){
-        let text = "while(True):";
-        let currentLine = 2;
-        for (let cell of cells){
-            var sourceCode = "\n\tif (True):\n";
+function convertToPython(cells){
+    let text = "while(True):";
+    let currentLine = 2;
+    for (let cell of cells){
+        let cellLength;
+        var sourceCode = "\n\tif (True):\n";
+        if (cell.source === undefined || cell.source.length == 0) {
+            cellLength = 1;
+            sourceCode += '\t\tprint(\'filler text\')';
+        } else {
+            cellLength = cell.source.length;
             for (let line of cell.source) {
                 if (line[0] == '%' || line[0] == '!' || line[0] == '#') {
                     if (cell.source.length === 1){ line = 'print(\'filler text\')'; }
@@ -81,45 +86,59 @@ module.exports = {
                 }
                 sourceCode += "\t\t" + line;
             }
-            let cellLength = cell.source.length;
-            if (cellLength > 0){
-                text += sourceCode;
-                cell.lineNos = [currentLine + 1, currentLine + cellLength];
-            }
-            currentLine += cellLength + 1;
         }
-        return text;
-    },
+        if (cellLength > 0){
+            text += sourceCode;
+            cell.lineNos = [currentLine + 1, currentLine + cellLength];
+        }
+        currentLine += cellLength + 1;
+    }
+    return text;
+}
 
-    calculateDefUse: function(notebook){
-        let cells = this.constructCells(notebook);
+module.exports = {
+    calculateDefUse: function(notebook, isJSON=false){
+        let cells = constructCells(notebook, isJSON);
         if (cells === undefined) return;
 
-        let text = this.convertToPython(cells);
+        let text = convertToPython(cells);
         let tree = py.parse(text);
         let cfg = new py.ControlFlowGraph(tree);
 		let analyzer = new py.DataflowAnalyzer();
 		let flows = analyzer.analyze(cfg).dataflows;
-        let items = flows.items;
-        for (let flow of items) {
-            let fromNodeFirstLine = flow.fromNode.location.first_line;
-            let toNodeFirstLine = flow.toNode.location.first_line;
-            let defCell;
-            let useCell;
-            let name;
-            let defNode;
-            let useNode;
 
-            if (flow.fromRef !== undefined && flow.toRef !== undefined){
-                name = flow.fromRef.name;
+        for (const flow of flows.items) {
+            let intersection
+            if (flow.fromNode.type === 'assign'){
+                intersection = [];
+                for (const target of flow.fromNode.targets){
+                    intersection.push(target.id);
+                }
+            } else {
+                let defs = analyzer.getDefs(flow.fromNode, new py.RefSet()).items.map(x => x.name);
+                let uses = analyzer.getUses(flow.toNode).items.map(x => x.name);
+                intersection = defs.filter(x => uses.includes(x));    
+            }
+
+            for (const name of intersection){
+                let fromNodeFirstLine = flow.fromNode.location.first_line;
+                let toNodeFirstLine = flow.toNode.location.first_line;
+                let defCell;
+                let useCell;
+                let defNode;
+                let useNode;
+    
                 cells.forEach(cell => {
                     if (cell.lineNos !== undefined){
                         if (isInBoundaries(fromNodeFirstLine, cell.lineNos)){
                             defCell = cell;
                             defCell.addDef(name, undefined, fromNodeFirstLine);
-                            let fromNodeLast = flow.fromNode.location.last_line;
-                            if (fromNodeFirstLine !== fromNodeLast) fromNodeLast -= 1;
-                            let node = [fromNodeFirstLine, fromNodeLast, name];
+                            let fromNodeLastLine = flow.fromNode.location.last_line;
+                            if (fromNodeFirstLine !== fromNodeLastLine){
+                                fromNodeLastLine -= 1;
+                            }
+                            let node = [fromNodeFirstLine, fromNodeLastLine, name];
+
                             let findNode = checkNodeExists(defCell.nodes, node);
                             if (typeof findNode === 'undefined'){
                                 findNode = node;
@@ -130,45 +149,58 @@ module.exports = {
                         if (isInBoundaries(toNodeFirstLine, cell.lineNos)){
                             useCell = cell;
                             useCell.addUse(name);
-                            let toNodeLast = flow.toNode.location.last_line;
-                            if (toNodeFirstLine !== toNodeLast) toNodeLast -= 1;
-                            let node = [toNodeFirstLine, toNodeLast];
+                            let toNodeLastLine = flow.toNode.location.last_line;
+                            if (toNodeFirstLine !== toNodeLastLine){
+                                toNodeLastLine -= 1;
+                            }
+                            let node = [toNodeFirstLine, toNodeLastLine];
                             let findNode = checkNodeExists(useCell.nodes, node);
                             if (typeof findNode === 'undefined'){
                                 findNode = node;
-                                //useCell.nodes.push(node);
                             }
                             useNode = findNode;
                         }
                     }
                 });
-            }
-            /*if (py.printNode(flow.fromNode) !== '1, 1'){
-                console.log(py.printNode(flow.fromNode) +  " -> " + py.printNode(flow.toNode));
-            }*/
-            if (defCell !== undefined && useCell !== undefined && !useCell.ancestors.includes(defCell.idx)){
-                if (defCell !== useCell || arraysEqual(defNode, useNode)){
-                    useCell.addAncestor(defCell.idx);
-                    useCell.relations.push({neighbor: defCell.idx, variable: name});
-                    defCell.addDescendant(useCell.idx);
-                    defCell.relations.push({neighbor: useCell.idx, variable: name});
-                }
+
+                if (defCell !== undefined && useCell !== undefined && !useCell.ancestors.includes(defCell.idx)){
+                    if (defCell !== useCell || arraysEqual(defNode, useNode)){
+                        useCell.addAncestor(defCell.idx);
+                        useCell.relations.push({neighbor: defCell.idx, variable: name});
+                        defCell.addDescendant(useCell.idx);
+                        defCell.relations.push({neighbor: useCell.idx, variable: name});
+                    }
+                }    
             }
         }
 
-        items.forEach(flow =>{
-            if (flow.fromRef !== undefined && flow.toRef !== undefined){
-                let useLoc = flow.toRef.location.first_line;
-                name = flow.fromRef.name;
+        //second pass for geting detailed definitions
+        for (const flow of flows.items){
+            let defs = analyzer.getDefs(flow.fromNode, new py.RefSet()).items.map(x => x.name);
+            let uses = analyzer.getUses(flow.toNode).items.map(x => x.name);
+            let intersection = defs.filter(x => uses.includes(x));
+            for (const name of intersection){
+                let useLoc;
+                if (flow.toRef === undefined){
+                    let type = flow.toNode.type;
+                    if (type === 'assign'){
+                        useLoc = flow.toNode.sources[0].location.first_line;
+                    } else if (type === 'call'){
+                        useLoc = flow.toNode.func.location.first_line;
+                    }                    
+                } else {
+                    useLoc = flow.toRef.location.first_line;
+                }
                 cells.forEach(cell => {
                     cell.nodes.forEach(node =>{
                         if (isInBoundaries(useLoc, node)){
+                            // node[2] is the name of the variable defined in the node
                             cell.addDef(node[2], name, useLoc);
                         }
                     });
                 });
             }
-        });
+        }
         return { cellList: cells };
     },
 
@@ -199,9 +231,13 @@ module.exports = {
         let state = new State();
         let outputs = [];
         cells.forEach( cell => {
-            let result = cell.apply(state);
-            state = result.globalState;
-            outputs.push(result.cellState);
+            if (cell.source !== undefined && cell.source.length > 0){
+                let result = cell.apply(state);
+                state = result.globalState;
+                outputs.push(result.cellState);
+            } else {
+                outputs.push(new State());
+            }
         });
         return outputs;
     },
@@ -212,7 +248,10 @@ module.exports = {
             const def = entry[0];
             const uses = entry[1];
             const other = y[def];
-            if(uses.toString() !== other.toString()){
+            if (other === undefined){
+                unequal.add(def);
+            }
+            else if(uses.toString() !== other.toString()){
                 // if the variable is defined in terms of other variables,
                 // we want to go down one layer to see which inputs
                 // do not match the inputs from the top-down order
@@ -223,7 +262,7 @@ module.exports = {
                         let aDef = entry[0];
                         let aUses = entry[1]
                         let bUses = b[aDef];
-                        if (aUses.toString() !== bUses.toString()){
+                        if (bUses === undefined || aUses.toString() !== bUses.toString()){
                             unequal.add(aDef);
                         }
                     });
