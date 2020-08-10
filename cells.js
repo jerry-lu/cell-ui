@@ -9,7 +9,6 @@ class Cell {
         this.descendants = [];
         this.defs = new Object();
         this.uses = [];
-        this.cellFunc = 'f';
         this.version = 0;
         this.idx = idx;
         this.relations = [];
@@ -26,10 +25,8 @@ class Cell {
             this.defs[def] = {terms: [], lineNo: undefined};
         }
         let l = this.defs[def];
-        if (typeof term !== 'undefined') {
-            if (!l.terms.includes(term)){ 
-                l.terms.push(term)
-            }
+        if (typeof term !== 'undefined' && !l.terms.includes(term)) {
+            l.terms.push(term);
         }
         if (typeof lineNo !== 'undefined'){
             l.lineNo = lineNo;
@@ -48,17 +45,12 @@ class Cell {
     set idx(idx){
         this._idx = idx;
     }
-    nextCellFunc(){
-        let code = this.cellFunc.charCodeAt();
-        this.cellFunc = String.fromCharCode(code + 1);
-    }
     incrementVersion(key='version'){
         this[key] = (this[key] + 1) || 0;
     }
     apply(state){
         let globalState = state;
         let cellState = new State();
-        //console.log(JSON.stringify(Object.entries(this.defs), null, 1));
         let entries = Object.entries(this.defs);
         entries.sort((a,b) => (a[1].lineNo > b[1].lineNo) ? 1 : ((b[1].lineNo > a[1].lineNo) ? -1 : 0)); 
         entries.forEach(entry => {
