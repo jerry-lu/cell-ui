@@ -1,8 +1,3 @@
-const fs = require('fs');
-const path = require('path');
-
-const directoryPath = path.join('../../evaluation', 'CLEAN');
-
 function textFromHistory(notebook, json, cellArr, goNode=false){
     let ipynb = {
         "cells": [],
@@ -10,7 +5,7 @@ function textFromHistory(notebook, json, cellArr, goNode=false){
         "nbformat": 4,
         "nbformat_minor": 4
     }
-    notebook[cellArr].forEach(cell =>{
+    for (const cell of notebook[cellArr]){
         let str = goNode ? cell.node : cell;
         const location = str.split('.');
         const type = location[0];
@@ -21,7 +16,11 @@ function textFromHistory(notebook, json, cellArr, goNode=false){
             let source = [];
             if (target.literal !== undefined){
                 source = target.literal.split(/(?<=\n)/);
-                if (cellNo > 1) source.splice(0, 0, 'random.seed(36)\n');
+                if (cellNo > 1) {
+                    source.splice(0, 0, 'random.seed(36)\n')
+                } else {
+                    source.splice(-1, 0, 'tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)\n');
+                }
             }
             const cell =
             {
@@ -45,43 +44,8 @@ function textFromHistory(notebook, json, cellArr, goNode=false){
             }
             ipynb.cells.push(cell);
         }
-    });
-    return ipynb;
+    }
+    return {nb: ipynb, sequence: notebook[cellArr]};
 }
-
-function main(directoryPath){
-    fs.readdir(directoryPath, function (err, files) {
-        console.log('reading from' + directoryPath);
-
-        //handling error
-        if (err) {
-            return console.log('Unable to scan directory: ' + err);
-        } 
-        //listing all files using forEach
-        files.forEach(function (file) {
-            let source = path.join(directoryPath, file);
-            //check whether the file is a directory
-            if (fs.lstatSync(source).isDirectory()) {
-                console.log(`reading from ${file}\n`);
-                let tgt = (path.join(__dirname, file));
-                fs.mkdirSync(tgt, { recursive: true })
-                fs.copyFileSync('./helpers.py', path.join(tgt, 'helpers.py'));
-
-                const txt = fs.readFileSync(path.join(source, 'HW5.ipyhistory')).toString();
-                const json = JSON.parse(txt);
-                const notebooks = json.notebook;  
-
-                let count = 0;
-                notebooks.forEach(notebook => {
-                    let ipynb = textFromHistory(notebook, json, 'cells');
-                    let data = JSON.stringify(ipynb,null,2);
-                    fs.writeFileSync(`${tgt}/${file}_${count++}.ipynb`, data);
-                });
-            }
-        });
-    });
-}
-
-//main(directoryPath);
 
 module.exports = {textFromHistory};
