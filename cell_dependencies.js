@@ -131,20 +131,33 @@ module.exports = {
                 cells.forEach(cell => {
                     if (cell.lineNos !== undefined){
                         if (isInBoundaries(fromNodeFirstLine, cell.lineNos)){
-                            defCell = cell;
-                            defCell.addDef(name, undefined, fromNodeFirstLine);
-                            let fromNodeLastLine = flow.fromNode.location.last_line;
-                            if (fromNodeFirstLine !== fromNodeLastLine){
-                                fromNodeLastLine -= 1;
-                            }
-                            let node = [fromNodeFirstLine, fromNodeLastLine, name];
 
-                            let findNode = checkNodeExists(defCell.nodes, node);
-                            if (typeof findNode === 'undefined'){
-                                findNode = node;
-                                defCell.nodes.push(node);
+                            let sources = flow.fromNode.sources;
+                            let allLiteral;
+                            if (typeof sources === 'undefined'){
+                                allLiteral = false
+                            } else {
+                                allLiteral = sources.every(source => source.type === 'literal');
                             }
-                            defNode = findNode;
+
+                            defCell = cell;
+                            if (allLiteral && flow.fromNode.op === undefined){
+                                defCell.addDef(name, {id: 'ConstPlaceholder'}, fromNodeFirstLine);
+                            } else {
+                                defCell.addDef(name, undefined, fromNodeFirstLine);
+                                let fromNodeLastLine = flow.fromNode.location.last_line;
+                                if (fromNodeFirstLine !== fromNodeLastLine){
+                                    fromNodeLastLine -= 1;
+                                }
+                                let node = [fromNodeFirstLine, fromNodeLastLine, name];
+
+                                let findNode = checkNodeExists(defCell.nodes, node);
+                                if (typeof findNode === 'undefined'){
+                                    findNode = node;
+                                    defCell.nodes.push(node);
+                                }
+                                defNode = findNode;
+                            }
                         }
                         if (isInBoundaries(toNodeFirstLine, cell.lineNos)){
                             useCell = cell;
@@ -255,7 +268,7 @@ module.exports = {
                 // if the variable is defined in terms of other variables,
                 // we want to go down one layer to see which inputs
                 // do not match the inputs from the top-down order
-                if (typeof uses === 'object'){
+                if (typeof uses === 'object' && typeof other === 'object'){
                     let a = uses.argsIn;
                     let b = other.argsIn;
                     Object.entries(a).forEach(entry => {
